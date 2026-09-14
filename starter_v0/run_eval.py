@@ -3,9 +3,17 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
 
 from agent import HelpdeskAgent
 from env_loader import load_lab_env
@@ -270,6 +278,7 @@ def main() -> None:
     parser.add_argument("--tools", type=Path, default=ARTIFACTS_DIR / "tools.yaml")
     parser.add_argument("--eval-cases", type=Path, default=DATA_DIR / "eval_base.json")
     parser.add_argument("--runs-dir", type=Path, default=ROOT / "runs")
+    parser.add_argument("--delay", type=float, default=0.0, help="Delay in seconds between cases to avoid rate limits.")
     args = parser.parse_args()
 
     system_prompt = args.system_prompt.read_text(encoding="utf-8")
@@ -289,13 +298,40 @@ def main() -> None:
     for case in cases:
         print(f"Running {case['id']}...", flush=True)
         agent = HelpdeskAgent(provider, system_prompt=system_prompt, tools=openai_tools, model=args.model)
-        try:
-            tool_choice = None if case["expect"].get("no_tool") else "required"
-            run = agent.run(case_messages(case), tool_choice=tool_choice)
-            calls = [{"name": call.name, "args": call.args} for call in run.tool_calls]
-            result = evaluate_phase_b(case, calls, run.text)
-            tool_results = run.tool_results
-        except Exception as exc:
+        max_retries = 5
+        calls = []
+        tool_results = []
+        result = None
+        for attempt in range(max_retries):
+            try:
+                tool_choice = None if case["expect"].get("no_tool") else "required"
+                run = agent.run(case_messages(case), tool_choice=tool_choice)
+                calls = [{"name": call.name, "args": call.args} for call in run.tool_calls]
+                result = evaluate_phase_b(case, calls, run.text)
+                tool_results = run.tool_results
+                break
+            except Exception as exc:
+                exc_str = str(exc)
+                if "429" in exc_str or "RESOURCE_EXHAUSTED" in exc_str:
+                    wait_sec = 15 + attempt * 10
+                    print(f"Rate limit hit on {case['id']}. Waiting {wait_sec}s before retry ({attempt + 1}/{max_retries})...", flush=True)
+                    time.sleep(wait_sec)
+                    continue
+                calls = []
+                tool_results = []
+                result = {
+                    "passed": False,
+                    "failure_type": "provider_error",
+                    "case_failure_type": case.get("failure_type"),
+                    "observed_mismatch": "provider_error",
+                    "failures": [f"{type(exc).__name__}: {exc_str}"],
+                    "actual_tool_calls": [],
+                    "actual_text": None,
+                    "routing_correct": False,
+                    "args_correct": False,
+                }
+                break
+        else:
             calls = []
             tool_results = []
             result = {
@@ -303,12 +339,15 @@ def main() -> None:
                 "failure_type": "provider_error",
                 "case_failure_type": case.get("failure_type"),
                 "observed_mismatch": "provider_error",
-                "failures": [f"{type(exc).__name__}: {str(exc)}"],
+                "failures": ["Rate limit retry exceeded"],
                 "actual_tool_calls": [],
                 "actual_text": None,
                 "routing_correct": False,
                 "args_correct": False,
             }
+        if args.delay > 0:
+            time.sleep(args.delay)
+
         results.append({
             "id": case["id"],
             "phase": case["phase"],
@@ -355,7 +394,10 @@ def main() -> None:
     out_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
     print_table(results, summary)
     print(f"\nArtifact version: {artifact_version.artifact_version}")
-    print(f"\nSaved: {out_path}")
+    try:
+        print(f"\nSaved: {out_path}")
+    except UnicodeEncodeError:
+        print(f"\nSaved: {out_path.name}")
 
 
 if __name__ == "__main__":
