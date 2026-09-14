@@ -6,15 +6,32 @@
 
 ## PHẦN 1: TỔNG QUAN QUÁ TRÌNH LÀM VIỆC (LOG TIẾN TRÌNH)
 
+Dưới đây là sơ đồ luồng (Workflow) thể hiện vòng lặp phân tích và tinh chỉnh mô hình của nhóm:
+
+```mermaid
+flowchart TD
+    V0[v0: Chạy Base Eval ban đầu\nPhân tích file chạy trong thư mục runs/] --> ANALYZE[Phát hiện Điểm mù\n- Tự đoán ID (Hallucination)\n- Vượt quyền tạo Ticket\n- Rò rỉ Data]
+    ANALYZE --> HYPOTHESIS[Lập Giả thuyết (version_log.csv)\nĐưa ra phương án chặn trong tools.yaml]
+    HYPOTHESIS --> V1[v1: Vá lỗi cơ bản\nCấm đoán ID, ép hỏi quyền, bóc tách data]
+    V1 --> V2[v2: Hợp nhất System Prompt\nĐịnh hình Persona cho AI]
+    V2 --> V3[v3: Xử lý Edge Cases\nCấm trả về JSON text, xử lý tham số mập mờ]
+    V3 --> PASS_BASE{Base Eval\nĐạt 100% PASS}
+    PASS_BASE --> TEAM_EVAL[Thiết kế bẫy Hacker\nTeam Eval & Adversarial]
+    TEAM_EVAL --> V4[v4: Defense-in-depth\nChống ép buộc (Roleplay), chống Argument Smuggling]
+    V4 --> END_GOAL((Hệ thống An toàn))
+```
+
 Dựa trên dữ liệu từ `version_log.csv`, quá trình nhóm phát triển và "uốn nắn" AI trải qua 4 phiên bản chính:
 
-### 1. Phiên bản v1: Xử lý các lỗi cơ bản (Ngây thơ & Thiếu kỷ luật)
-- **Lỗi Hallucination ID:** AI tự đoán mã thiết bị khi người dùng nói mập mờ.
+### 1. Phiên bản v0 & v1: Từ Phân tích Lỗi đến Vá Lỗi Cơ Bản
+- **Bước Phân tích v0:** Nhóm tiến hành chạy `run_eval.py` lần đầu tiên với bộ Base Suite và mở các file JSON trong thư mục `runs/` để phân tích (Trace Analysis). Nhóm phát hiện ra mô hình AI có xu hướng "nhiệt tình thái quá":
+  - **Lỗi Hallucination ID:** Khi user nói "Kiểm tra máy của sếp", trace log cho thấy AI tự gọi hàm `inspect_device` và điền bừa tham số `asset_id="LT-123"`.
+  - **Lỗi vượt quyền tạo Ticket:** Trace log cho thấy hàm `create_ticket` được gọi ngay lập tức với `confirmed=true` dù người dùng chưa đồng ý.
+  - **Lỗi rò rỉ dữ liệu ngoài ý muốn:** Hàm `search_device_info` ghi nhận tham số `model` chứa cả mã nội bộ của công ty.
+- **Bước Lập Giả Thuyết & Sửa Lỗi (v1):** Từ phân tích trên, nhóm đưa ra các giả thuyết chặn lỗi và sửa `tools.yaml`:
   - *Fix:* Cập nhật `tools.yaml` bắt buộc dùng tool `clarify` khi thiếu ID.
-- **Lỗi vượt quyền tạo Ticket:** AI tự động gán `confirmed=true` mà không hỏi người dùng.
   - *Fix:* Sửa mô tả `create_ticket` yêu cầu phải dùng `clarify` xin phép trước.
-- **Lỗi rò rỉ dữ liệu ngoài ý muốn:** Hàm `search_device_info` mang cả ID nội bộ lên public web tìm kiếm.
-  - *Fix:* Nhắc nhở nghiêm ngặt trong mô tả tool về việc bóc tách hãng sản xuất và cấm mang `asset_id` ra ngoài.
+  - *Fix:* Nhắc nhở nghiêm ngặt trong mô tả tool về việc bóc tách hãng sản xuất và cấm mang `asset_id` ra ngoài mạng public.
 
 ### 2. Phiên bản v2: Hợp nhất System Prompt
 - Đưa vào bản cập nhật `system_prompt.md` để cấu trúc lại Persona (định dạng tính cách) và hướng dẫn tổng thể cho Agent.
