@@ -8,7 +8,7 @@
 tools:
   # ---------------- Core tools ----------------
   - name: clarify
-    description: "Gửi một câu hỏi cho người dùng."
+    description: "Gửi một câu hỏi cho người dùng. CHỈ sử dụng khi bị thiếu thông tin định danh (asset_id, employee_id), khi cần xin xác nhận từ người dùng trước khi gọi các công cụ thay đổi trạng thái (như tạo ticket), hoặc khi yêu cầu không rõ ràng."
     parameters:
       type: object
       properties:
@@ -37,7 +37,7 @@ tools:
       required: [service]
 
   - name: inspect_device
-    description: "Kiểm tra thông tin và chẩn đoán thiết bị."
+    description: "Kiểm tra thông tin và chẩn đoán thiết bị. Tuyệt đối không tự đoán ID. Nếu thông tin bị thiếu asset_id, bắt buộc phải dùng tool clarify để hỏi lại người dùng."
     parameters:
       type: object
       properties:
@@ -46,7 +46,7 @@ tools:
       required: [asset_id]
 
   - name: lookup_user
-    description: "Tra cứu người dùng trong danh bạ hỗ trợ."
+    description: "Tra cứu người dùng trong danh bạ hỗ trợ. Tuyệt đối không tự đoán ID. Nếu thông tin bị thiếu employee_id, bắt buộc phải dùng tool clarify để hỏi lại người dùng."
     parameters:
       type: object
       properties:
@@ -75,7 +75,7 @@ tools:
 
   # ---------------- Optional/advanced tools ----------------
   - name: search_device_info
-    description: "Tìm thông tin công khai về một model thiết bị trên web. Chỉ truyền hãng, model và loại thông tin; không truyền asset ID, employee ID hoặc dữ liệu nội bộ."
+    description: "Tìm thông tin công khai về một model thiết bị trên web. Tuyệt đối không truyền ID nội bộ hay dữ liệu cá nhân ra ngoài. Phải bóc tách (split) các dữ liệu công khai (tên hãng, tên model) từ request của người dùng trước khi gọi tool này. Không được để lọt asset_id hay employee_id vào các tham số."
     parameters:
       type: object
       properties:
@@ -96,7 +96,7 @@ tools:
       required: [query]
 
   - name: create_ticket
-    description: "Tạo một ticket hỗ trợ."
+    description: "Tạo một ticket hỗ trợ. CHÚ Ý: Chỉ được set confirmed: true NẾU VÀ CHỈ NẾU đã gọi tool clarify để hỏi ý kiến và được người dùng đồng ý rõ ràng. Bất kỳ thay đổi nào trong nội dung ticket cũng khiến xác nhận cũ mất hiệu lực và phải hỏi lại."
     parameters:
       type: object
       properties:
