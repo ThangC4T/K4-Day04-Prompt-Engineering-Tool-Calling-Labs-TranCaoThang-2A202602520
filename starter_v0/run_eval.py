@@ -290,7 +290,9 @@ def main() -> None:
         print(f"Running {case['id']}...", flush=True)
         agent = HelpdeskAgent(provider, system_prompt=system_prompt, tools=openai_tools, model=args.model)
         try:
-            tool_choice = None if case["expect"].get("no_tool") else "required"
+            # deepseek-flash thinking mode rejects tool_choice="required"; "auto" is compatible
+            # and still lets the model choose tools (preflight uses None/auto successfully).
+            tool_choice = None if case["expect"].get("no_tool") else "auto"
             run = agent.run(case_messages(case), tool_choice=tool_choice)
             calls = [{"name": call.name, "args": call.args} for call in run.tool_calls]
             result = evaluate_phase_b(case, calls, run.text)

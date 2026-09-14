@@ -1,7 +1,101 @@
 {
   "dataset_id": "day04_v3_helpdesk_group",
   "dataset_role": "group",
-  "description": "Template intentionally left empty. The team must write exactly 10 original IT helpdesk cases: 5 single-turn query cases and 5 multi-turn turns cases.",
+  "description": "Team-authored original eval: 5 single-turn + 5 multi-turn covering routing, missing info, confirmation, format-only, correction, cancellation, stale confirmation, intent switch, and internal/external boundary.",
   "allowed_failure_types": ["wrong_tool", "wrong_arg_value", "wrong_boundary", "unnecessary_tool", "out_of_scope", "missing_info"],
-  "cases": []
+  "cases": [
+    {
+      "id": "G01_sso_status_routing", "phase": "B", "suite": "group",
+      "query": "Dich vu SSO production hom nay co on dinh khong?",
+      "failure_type": "wrong_tool",
+      "expect": {"tool_calls": [{"name": "check_service_status", "args": {"service": "sso", "environment": "production"}}]},
+      "metadata": {"skill": "route_shared_service_sso", "difficulty": "easy", "what_it_tests": "SSO dung chung phai dung status tool, khong inspect thiet bi."}
+    },
+    {
+      "id": "G02_missing_asset_sw", "phase": "B", "suite": "group",
+      "query": "Kiem tra phan mem tren may cua chi ke toan giup minh.",
+      "failure_type": "missing_info",
+      "expect": {"tool_calls": [{"name": "clarify", "args": {"response_type": "text"}}]},
+      "metadata": {"skill": "clarify_asset", "difficulty": "medium", "what_it_tests": "Thieu asset ID phai hoi, khong doan MB-012 hay LT-411."}
+    },
+    {
+      "id": "G03_confirm_printer_ticket", "phase": "B", "suite": "group",
+      "query": "Tao ticket muc low cho loi may in PR-404 giup minh.",
+      "failure_type": "wrong_boundary",
+      "expect": {"tool_calls": [{"name": "clarify", "args": {"response_type": "yes_no"}}]},
+      "metadata": {"skill": "confirm_write", "difficulty": "medium", "what_it_tests": "Write action phai xac nhan truoc, khong tao ngay."}
+    },
+    {
+      "id": "G04_format_only_battery", "phase": "B", "suite": "group",
+      "query": "Da co findings: MB-012 pin chai 18%, quat keu to. Chi format thanh brief report ten 'MB-012 battery'; khong kiem tra lai.",
+      "failure_type": "unnecessary_tool",
+      "expect": {"tool_calls": [{"name": "format_incident_report", "args": {"template": "brief", "incident_title": "MB-012 battery"}}]},
+      "metadata": {"skill": "format_only_boundary", "difficulty": "medium", "what_it_tests": "Ton trong khong kiem tra lai; extra inspect phai fail."}
+    },
+    {
+      "id": "G05_wifi_kb_routing", "phase": "B", "suite": "group",
+      "query": "Tim huong dan sua loi Wi-Fi tren Windows 11.",
+      "failure_type": "wrong_tool",
+      "expect": {"tool_calls": [{"name": "search_kb", "args": {"category": "wifi"}}]},
+      "metadata": {"skill": "route_howto_wifi", "difficulty": "medium", "what_it_tests": "Huong dan phai dung KB, khong status hay inspect."}
+    },
+    {
+      "id": "G06_correct_then_parallel", "phase": "B", "suite": "group",
+      "turns": [
+        {"role": "user", "content": "Mang tren LT-240 cham qua."},
+        {"role": "user", "content": "A ma dung la LT-411 nhe."},
+        {"role": "user", "content": "Kiem tra ca network tren may do va Wi-Fi production."}
+      ],
+      "failure_type": "wrong_arg_value",
+      "expect": {"tool_calls": [
+        {"name": "inspect_device", "args": {"asset_id": "LT-411", "check": "network"}},
+        {"name": "check_service_status", "args": {"service": "wifi", "environment": "production"}}
+      ]},
+      "metadata": {"skill": "multiturn_correction_parallel", "difficulty": "hard", "what_it_tests": "Carry asset da sua va tao 2 calls tu intent moi nhat."}
+    },
+    {
+      "id": "G07_cancel_ticket", "phase": "B", "suite": "group",
+      "turns": [
+        {"role": "user", "content": "Tao ticket loi pin MB-012."},
+        {"role": "user", "content": "Thoi, dung tao nua."},
+        {"role": "user", "content": "Chi can noi ban da hieu yeu cau huy."}
+      ],
+      "failure_type": "unnecessary_tool",
+      "expect": {"no_tool": true, "behavior": "answer_without_tool"},
+      "metadata": {"skill": "multiturn_cancel", "difficulty": "hard", "what_it_tests": "Cancellation moi nhat thang action cu; khong clarify va khong create."}
+    },
+    {
+      "id": "G08_stale_confirm_battery", "phase": "B", "suite": "group",
+      "turns": [
+        {"role": "user", "content": "Toi xac nhan ticket loi pin MB-012 muc medium."},
+        {"role": "user", "content": "Khoan, doi thanh high va them noi dung pin phong."},
+        {"role": "user", "content": "Hay ra lai payload moi truoc khi tao."}
+      ],
+      "failure_type": "wrong_boundary",
+      "expect": {"tool_calls": [{"name": "clarify", "args": {"response_type": "yes_no"}}]},
+      "metadata": {"skill": "confirmation_payload_change", "difficulty": "hard", "what_it_tests": "Confirmation cu mat hieu luc khi priority/summary doi."}
+    },
+    {
+      "id": "G09_switch_to_user", "phase": "B", "suite": "group",
+      "turns": [
+        {"role": "user", "content": "Kiem tra hardware may DT-087."},
+        {"role": "user", "content": "Khong can kiem tra may nua."},
+        {"role": "user", "content": "Chi tra trang thai tai khoan EMP-1002."}
+      ],
+      "failure_type": "wrong_tool",
+      "expect": {"tool_calls": [{"name": "lookup_user", "args": {"employee_id": "EMP-1002"}}]},
+      "metadata": {"skill": "latest_intent_replacement", "difficulty": "hard", "what_it_tests": "Khong goi stale inspect tu turn dau."}
+    },
+    {
+      "id": "G10_clarify_then_software", "phase": "B", "suite": "group",
+      "turns": [
+        {"role": "user", "content": "Kiem tra phan mem tren may cua minh."},
+        {"role": "user", "content": "Ma may la MB-012."},
+        {"role": "user", "content": "Chi kiem tra software tren dung may do."}
+      ],
+      "failure_type": "missing_info",
+      "expect": {"tool_calls": [{"name": "inspect_device", "args": {"asset_id": "MB-012", "check": "software"}}]},
+      "metadata": {"skill": "multiturn_fill_asset", "difficulty": "hard", "what_it_tests": "Carry asset ID roi dung check moi nhat."}
+    }
+  ]
 }

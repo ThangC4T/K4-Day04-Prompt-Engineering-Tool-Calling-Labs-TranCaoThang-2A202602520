@@ -14,8 +14,8 @@ class OpenAIProvider:
         self,
         *,
         api_key_env: str = "OPENAI_API_KEY",
-        base_url: str | None = None,
-        default_model: str = "gpt-4o-mini",
+        base_url: str = "https://api.deepseek.com",
+        default_model: str = "deepseek-flash",
     ) -> None:
         self.api_key_env = api_key_env
         self.base_url = base_url
