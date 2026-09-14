@@ -10,15 +10,15 @@ Dưới đây là sơ đồ luồng (Workflow) thể hiện vòng lặp phân t�
 
 ```mermaid
 flowchart TD
-    V0[v0: Chạy Base Eval ban đầu\nPhân tích file chạy trong thư mục runs/] --> ANALYZE[Phát hiện Điểm mù\n- Tự đoán ID (Hallucination)\n- Vượt quyền tạo Ticket\n- Rò rỉ Data]
-    ANALYZE --> HYPOTHESIS[Lập Giả thuyết (version_log.csv)\nĐưa ra phương án chặn trong tools.yaml]
-    HYPOTHESIS --> V1[v1: Vá lỗi cơ bản\nCấm đoán ID, ép hỏi quyền, bóc tách data]
-    V1 --> V2[v2: Hợp nhất System Prompt\nĐịnh hình Persona cho AI]
-    V2 --> V3[v3: Xử lý Edge Cases\nCấm trả về JSON text, xử lý tham số mập mờ]
-    V3 --> PASS_BASE{Base Eval\nĐạt 100% PASS}
-    PASS_BASE --> TEAM_EVAL[Thiết kế bẫy Hacker\nTeam Eval & Adversarial]
-    TEAM_EVAL --> V4[v4: Defense-in-depth\nChống ép buộc (Roleplay), chống Argument Smuggling]
-    V4 --> END_GOAL((Hệ thống An toàn))
+    V0["v0: Chạy Base Eval ban đầu\nPhân tích file chạy trong thư mục runs/"] --> ANALYZE["Phát hiện Điểm mù\n- Tự đoán ID (Hallucination)\n- Vượt quyền tạo Ticket\n- Rò rỉ Data"]
+    ANALYZE --> HYPOTHESIS["Lập Giả thuyết (version_log.csv)\nĐưa ra phương án chặn trong tools.yaml"]
+    HYPOTHESIS --> V1["v1: Vá lỗi cơ bản\nCấm đoán ID, ép hỏi quyền, bóc tách data"]
+    V1 --> V2["v2: Hợp nhất System Prompt\nĐịnh hình Persona cho AI"]
+    V2 --> V3["v3: Xử lý Edge Cases\nCấm trả về JSON text, xử lý tham số mập mờ"]
+    V3 --> PASS_BASE{"Base Eval\nĐạt 100% PASS"}
+    PASS_BASE --> TEAM_EVAL["Thiết kế bẫy Hacker\nTeam Eval & Adversarial"]
+    TEAM_EVAL --> V4["v4: Defense-in-depth\nChống ép buộc (Roleplay), chống Argument Smuggling"]
+    V4 --> END_GOAL(("Hệ thống An toàn"))
 ```
 
 Dựa trên dữ liệu từ `version_log.csv`, quá trình nhóm phát triển và "uốn nắn" AI trải qua 4 phiên bản chính:
