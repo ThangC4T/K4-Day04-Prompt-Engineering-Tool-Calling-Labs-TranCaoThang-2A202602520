@@ -28,7 +28,7 @@ tools:
       required: [query]
 
   - name: check_service_status
-    description: "Kiểm tra trạng thái một dịch vụ."
+    description: "Kiểm tra trạng thái một dịch vụ. Tham số environment chỉ được là 'production' hoặc 'staging'. Nếu user dùng từ không rõ ràng (như demo, test...), TUYỆT ĐỐI KHÔNG tự đoán bừa, BẮT BUỘC phải dùng tool clarify để hỏi lại."
     parameters:
       type: object
       properties:
@@ -42,7 +42,7 @@ tools:
       type: object
       properties:
         asset_id: {type: string, description: "Mã tài sản"}
-        check: {type: string, enum: [all, network, vpn, security, hardware, software], default: "all", description: "Nhóm kiểm tra"}
+        check: {type: string, enum: [all, network, vpn, security, hardware, software], default: "all", description: "Nhóm chẩn đoán cần kiểm tra. Nếu vấn đề của người dùng liên quan cụ thể đến mạng, vpn, bảo mật... thì BẮT BUỘC phải chọn giá trị tương ứng thay vì dùng giá trị 'all'."}
       required: [asset_id]
 
   - name: lookup_user
@@ -54,7 +54,7 @@ tools:
       required: [employee_id]
 
   - name: format_incident_report
-    description: "Trình bày các kết quả đã có thành báo cáo."
+    description: "Trình bày các kết quả đã có thành báo cáo. BẮT BUỘC gọi tool này nếu user yêu cầu format hoặc trình bày báo cáo. TUYỆT ĐỐI KHÔNG tự in ra JSON text trong câu trả lời."
     parameters:
       type: object
       properties:
