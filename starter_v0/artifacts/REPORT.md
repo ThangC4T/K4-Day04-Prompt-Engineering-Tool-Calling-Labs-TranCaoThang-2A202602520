@@ -4,7 +4,7 @@
 
 - Team: Nhóm Thắng - Cương (Northstar Triage Team)
 - Members:
-  1. **Trần Cao Thắng** — MSHV: **2A202602520** (Trưởng nhóm, GitHub: `Thangct`)
+  1. **Trần Cao Thắng** — MSHV: **2A202602520** (Trưởng nhóm, GitHub: `ThangC4T`)
   2. **Phạm Minh Cương** — MSHV: **2A202602825** (Thành viên)
 - Provider/model: `openai` + `deepseek-flash` (DeepSeek API OpenAI-compatible, `base_url https://api.deepseek.com`, key trong `starter_v0/.env` biến `OPENAI_API_KEY`, không commit)
 
@@ -16,7 +16,7 @@ Agent service-desk nội bộ cho công ty giả lập Northstar Labs: route đ�
 
 **Link dùng thử:**
 
-> URL Repository chung: `https://github.com/anhtri04/K4-Day04-Prompt-Engineering-Tool-Calling-Labs-NguyenAnhTri-02730`
+> URL Repository chung: `https://github.com/ThangC4T/K4-Day04-Prompt-Engineering-Tool-Calling-Labs-TranCaoThang-2A202602520`
 > Chạy Web UI (Streamlit): `cd starter_v0` rồi `streamlit run app.py`
 > Chạy CLI (Typer): `cd starter_v0` rồi `python app.py chat --provider openai --model deepseek-flash --version v3`
 
@@ -167,7 +167,7 @@ UI: `streamlit run app.py` (hoặc `python app.py chat`) tái sử dụng `run_m
 - **Vai trò/phần việc được nhận:** Trưởng nhóm; phụ trách tổng thể dự án, tích hợp hệ thống, xây dựng giao diện Web UI (Streamlit) và chuẩn hóa CLI (`app.py`), quản lý log phiên bản (`version_log.csv`), tổ chức cấu trúc dữ liệu chứng minh (`runs/`, `transcripts/`), kiểm thử toàn diện và hoàn thiện báo cáo checkout.
 - **Những gì tôi đã thay đổi trong repo chung:** Xây dựng `starter_v0/app.py` hỗ trợ song song Web UI và CLI, cấu hình theo dõi bằng chứng trong `.gitignore`, tạo `TEAMMATES.md`, hoàn thiện `starter_v0/artifacts/REPORT.md`, tích hợp toàn bộ các nhánh đóng góp vào nhánh chính `main` mà không làm mất commit lịch sử.
 - **File hoặc artifact liên quan:** `starter_v0/app.py`, `TEAMMATES.md`, `.gitignore`, `starter_v0/artifacts/REPORT.md`, `starter_v0/artifacts/version_log.csv`, `starter_v0/runs/`, `starter_v0/transcripts/`.
-- **Commit hash hoặc pull request:** Các commits trực tiếp trên branch `main` của tác giả Thangct (`thangtche173569@fpt.edu.vn`).
+- **Commit hash hoặc pull request:** Các commits trực tiếp trên branch `main` của tác giả ThangC4T (`thangtche173569@fpt.edu.vn`).
 - **Một quyết định kỹ thuật tôi đã đưa ra và lý do:** Thiết kế `app.py` dạng lưỡng dụng (dual-mode) tự động kích hoạt Streamlit Web UI khi chạy bằng `streamlit run` và kích hoạt Typer CLI khi chạy qua console; đồng thời trang bị cơ chế tự động mô phỏng các ca rehearsed scenarios có sẵn trong bộ dữ liệu giúp hệ thống có thể trình diễn ngay cả khi provider gặp sự cố quota hoặc mất mạng.
 - **Khó khăn tôi gặp và cách tôi xử lý:** File run và transcript ban đầu bị bỏ qua bởi `.gitignore` mặc định của template; tôi đã cập nhật lại whitelist rule trong `.gitignore` để lưu trữ đầy đủ 152 kết quả kiểm thử vào git repository nhằm đảm bảo bằng chứng nộp bài minh bạch.
 - **Điều tôi học được từ phần việc này:** Hiểu sâu sắc rằng một giải pháp AI hoàn chỉnh cần sự kết hợp chặt chẽ giữa Prompt Engineering, Tool Schema Design, và trải nghiệm người dùng trực quan để người vận hành có thể audit được từng bước suy luận của mô hình.
@@ -197,4 +197,4 @@ UI: `streamlit run app.py` (hoặc `python app.py chat`) tái sử dụng `run_m
 
 **URL repository chung dùng để nộp:**
 
-> URL: https://github.com/anhtri04/K4-Day04-Prompt-Engineering-Tool-Calling-Labs-NguyenAnhTri-02730
+> URL: https://github.com/ThangC4T/K4-Day04-Prompt-Engineering-Tool-Calling-Labs-TranCaoThang-2A202602520
