@@ -1,0 +1,8 @@
+{
+  "evidence_type": "provider_diagnostic",
+  "case_id": "H08_out_of_scope",
+  "model": "openai/gpt-oss-20b",
+  "status": 400,
+  "error_type": "BadRequestError",
+  "message": "Error code: 400 - {'error': {'message': \"Tool call validation failed: tool call validation failed: attempted to call tool 'JSON' which was not in request.tools\", 'type': 'invalid_request_error', 'code': 'tool_use_failed', 'failed_generation': '{\"name\": \"JSON\", \"arguments\": {\"intent\":\"outside_service_desk\",\"action\":\"inform\",\"reply\":\"I’m sorry, but I can’t help with that. I can assist with IT service desk related questions such as tickets, assets, knowledge articles, or company policy.\",\"evidence_ids\":[]}}'}}"
+}

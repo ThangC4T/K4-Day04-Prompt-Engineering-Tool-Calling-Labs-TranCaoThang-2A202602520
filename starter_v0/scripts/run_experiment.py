@@ -17,7 +17,7 @@ from versioning import artifact_version_dict, build_artifact_version
 SUITES = {"base": "eval_base.json", "group": "eval_group.json",
           "adversarial": "eval_adversarial.json", "extension": "eval_helpdesk_extension.json"}
 KEYS = {"openrouter": "OPENROUTER_API_KEY", "openai": "OPENAI_API_KEY",
-        "anthropic": "ANTHROPIC_API_KEY", "gemini": "GEMINI_API_KEY"}
+        "anthropic": "ANTHROPIC_API_KEY", "gemini": "GEMINI_API_KEY", "groq": "GROQ_API_KEY"}
 
 
 def record_run(payload: dict, run_path: Path) -> None:

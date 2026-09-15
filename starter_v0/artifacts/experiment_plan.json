@@ -1,5 +1,5 @@
 {
-  "status": "not_run",
+  "status": "live_in_progress",
   "baseline_source": "f680c59",
   "versions": [
     {
@@ -9,59 +9,59 @@
       "artifact_version": "v0+p27467914bc4d+t86e19195220e",
       "prompt_hash": "27467914bc4d93574eb1a418b77247c51682e04401c78fb4445c22b9019185a0",
       "tools_hash": "86e19195220e2c3deba00196baa9d00bd06380b4317f92a4b5c6a302ff616bdb",
-      "reason": "Candidate prepared from code review; not yet measured",
+      "reason": "Original starter baseline; observed 17/30 passing on Groq.",
       "hypothesis": "Unchanged starter baseline",
       "metric_name": "case_accuracy",
       "metric_before": "",
-      "metric_after": "",
-      "run_file": "",
-      "status": "pending_api_key"
+      "metric_after": 0.5667,
+      "run_file": "runs/v0_B_base_groq_20260915T094859120284.json",
+      "status": "measured_reviewed"
     },
     {
       "version": "v1",
       "author": "Pham Minh Cuong (integration with Codex)",
       "changed_artifact": "tools.yaml",
-      "artifact_version": "v1+p27467914bc4d+ta2061ef42d81",
+      "artifact_version": "v1+p27467914bc4d+t5e0b6aa77913",
       "prompt_hash": "27467914bc4d93574eb1a418b77247c51682e04401c78fb4445c22b9019185a0",
-      "tools_hash": "a2061ef42d81a2036c78c50a781b4fafcb829acf9ee2ce359ace0698a388c053",
-      "reason": "Candidate prepared from code review; not yet measured",
-      "hypothesis": "Clear capability boundaries reduce routing and argument errors",
+      "tools_hash": "5e0b6aa77913ff2c99ea59e4b862a8932b21382ab6e109056c57c1748cb71644",
+      "reason": "v0 H07/H10/H11/H12/H20 used text instead of required tools; H08 called clarify out of scope; H19 guessed environment.",
+      "hypothesis": "Explicit structured clarification and formatting plus capability boundaries reduce missing-tool and boundary errors.",
       "metric_name": "case_accuracy",
-      "metric_before": "",
-      "metric_after": "",
-      "run_file": "",
-      "status": "pending_api_key"
+      "metric_before": 0.5667,
+      "metric_after": 0.5,
+      "run_file": "runs/v1_B_base_groq_20260915T100306372569.json",
+      "status": "measured_reviewed"
     },
     {
       "version": "v2",
       "author": "Pham Minh Cuong (integration with Codex)",
       "changed_artifact": "system_prompt.md",
-      "artifact_version": "v2+p10cce5f0f8cf+ta2061ef42d81",
-      "prompt_hash": "10cce5f0f8cf9f855944149d070a4196f1c943307d1987ab61dd35a68a964a15",
-      "tools_hash": "a2061ef42d81a2036c78c50a781b4fafcb829acf9ee2ce359ace0698a388c053",
-      "reason": "Candidate prepared from code review; not yet measured",
-      "hypothesis": "Latest intent and exact-payload rules improve multi-turn behavior",
+      "artifact_version": "v2+p18c3a7ef6d75+t5e0b6aa77913",
+      "prompt_hash": "18c3a7ef6d751352464a83e0172d47d715f51ebb2fe30bb7b590262bedc8910c",
+      "tools_hash": "5e0b6aa77913ff2c99ea59e4b862a8932b21382ab6e109056c57c1748cb71644",
+      "reason": "v1 regressed to 15/30: H09/M07 extra tools, H10/H11/M05/M09 text instead of clarify, and multi-source missing calls.",
+      "hypothesis": "Separate native tool execution from final JSON; require independent calls together, preserve latest scope and confirmation.",
       "metric_name": "case_accuracy",
-      "metric_before": "",
-      "metric_after": "",
-      "run_file": "",
-      "status": "pending_api_key"
+      "metric_before": 0.5,
+      "metric_after": 0.4667,
+      "run_file": "runs/v2_B_base_groq_20260915T101709424537.json",
+      "status": "measured_reviewed"
     },
     {
       "version": "v3",
       "author": "Pham Minh Cuong (integration with Codex)",
       "changed_artifact": "system_prompt.md;tools.yaml",
-      "artifact_version": "v3+p5a9fdb21de7c+tc04c6d2eae32",
-      "prompt_hash": "5a9fdb21de7c1660bc7cc5baf7fde16da0d3064bbcd9a4b1a5c4555153d2f784",
-      "tools_hash": "c04c6d2eae32ee32d2587a7d6427e5599d56086fafd68567859a5b0052dd773f",
-      "reason": "Candidate prepared from code review; not yet measured",
-      "hypothesis": "Untrusted-data and privacy rules reduce boundary violations",
+      "artifact_version": "v3+p051690e91cab+t0b8c125a3fdb",
+      "prompt_hash": "051690e91cab708084fab895cc3e59384c1837d7dc5f7396c56132738f74cace",
+      "tools_hash": "0b8c125a3fdbf9907ac7bd7e8fcdc982cce8c43a4b5f1ad60e5b0bea6bc902c0",
+      "reason": "v2 hallucinated service/device/directory/KB facts without calls (H01-H04/H06/H15/H16), still skipped parallel calls and over-clarified meta/cancel.",
+      "hypothesis": "A direct decision procedure, mandatory observed evidence and explicit trust boundaries reduce fabricated answers, missed calls and unnecessary clarification.",
       "metric_name": "case_accuracy",
       "metric_before": "",
       "metric_after": "",
       "run_file": "",
-      "status": "pending_api_key"
+      "status": "ready_after_v2_review"
     }
   ],
-  "notice": "No provider metrics have been measured. Review baseline evidence before each subsequent candidate."
+  "notice": "Groq preflight and v0 measured. Each subsequent candidate is reviewed against prior observed failures before execution."
 }

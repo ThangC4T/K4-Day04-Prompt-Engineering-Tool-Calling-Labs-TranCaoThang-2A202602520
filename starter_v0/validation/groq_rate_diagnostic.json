@@ -1,0 +1,16 @@
+{
+  "observed_at": "2026-09-15T03:31:11.509470+00:00",
+  "purpose": "one diagnostic of throttling during v3; not an evaluation score",
+  "status": 429,
+  "error_type": "RateLimitError",
+  "message": "Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.6-27b` in organization `[ORG_REDACTED]` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199568, Requested 2958. Please try again in 18m11.232s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+  "headers": {
+    "retry-after": "1092",
+    "x-ratelimit-limit-requests": "1000",
+    "x-ratelimit-limit-tokens": "8000",
+    "x-ratelimit-remaining-requests": "912",
+    "x-ratelimit-remaining-tokens": "8000",
+    "x-ratelimit-reset-requests": "2h6m43.2s",
+    "x-ratelimit-reset-tokens": "1ms"
+  }
+}

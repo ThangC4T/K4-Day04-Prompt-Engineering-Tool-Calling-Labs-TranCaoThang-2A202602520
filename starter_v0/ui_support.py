@@ -15,6 +15,7 @@ from privacy import redact_sensitive
 
 
 PROVIDER_KEYS = {
+    "groq": "GROQ_API_KEY",
     "openrouter": "OPENROUTER_API_KEY",
     "openai": "OPENAI_API_KEY",
     "anthropic": "ANTHROPIC_API_KEY",

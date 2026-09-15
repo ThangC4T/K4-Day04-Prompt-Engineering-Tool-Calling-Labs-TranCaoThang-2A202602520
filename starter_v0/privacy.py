@@ -15,7 +15,7 @@ SECRET_ASSIGNMENT = re.compile(
     r"mfa|otp|recovery[ _-]?code)\b[\"']?\s*(?::|=|\bis\b|\bla\b|\blà\b)\s*)"
     r"(?:\"[^\"]*\"|'[^']*'|[^\s,;}]+)"
 )
-API_SECRET = re.compile(r"\b(?:sk-(?:proj-|or-v1-)?[A-Za-z0-9_-]{16,}|tvly-[A-Za-z0-9_-]{16,})\b")
+API_SECRET = re.compile(r"\b(?:gsk_[A-Za-z0-9]{20,}|sk-(?:proj-|or-v1-)?[A-Za-z0-9_-]{16,}|tvly-[A-Za-z0-9_-]{16,})\b")
 SECRET_KEYS = {"password", "passwd", "token", "api_key", "apikey", "otp", "mfa", "recovery_code", "authorization"}
 
 

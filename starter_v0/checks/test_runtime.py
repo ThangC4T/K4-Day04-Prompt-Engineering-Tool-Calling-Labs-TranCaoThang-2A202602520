@@ -19,6 +19,7 @@ from providers.anthropic_provider import _split_system
 from providers.gemini_provider import _to_gemini_contents, _to_gemini_declarations
 from providers.openai_provider import OpenAIProvider
 from providers.openrouter_provider import OpenRouterProvider
+from providers.groq_provider import GroqProvider
 from run_eval import evaluate_phase_b, run_case
 from scripts.check_submission import check_local
 from tool_runtime import execute_tool_call, ticket_action
@@ -175,6 +176,42 @@ class RuntimeTests(unittest.TestCase):
             self.assertEqual(direct.base_url, "https://example.invalid/v1")
             self.assertEqual(router.base_url, "https://openrouter.ai/api/v1")
             self.assertEqual(router.default_model, "openai/gpt-4o-mini")
+
+    def test_groq_uses_its_own_key_endpoint_and_bounded_output(self):
+        with patch.dict(os.environ, {"GROQ_API_KEY": "test-groq-placeholder",
+                                    "OPENAI_API_KEY": "unrelated-openai-placeholder",
+                                    "OPENAI_BASE_URL": "https://example.invalid/v1"}, clear=True), \
+                patch("openai.OpenAI") as client:
+            client.return_value.chat.completions.create.return_value = Mock(
+                choices=[Mock(message=Mock(content="ok", tool_calls=[], reasoning_content=None))])
+            provider = GroqProvider()
+            response = provider.complete([{"role": "user", "content": "hello"}])
+            self.assertEqual(response.text, "ok")
+            self.assertEqual(client.call_args.kwargs["api_key"], "test-groq-placeholder")
+            self.assertEqual(client.call_args.kwargs["base_url"], "https://api.groq.com/openai/v1")
+            request = client.return_value.chat.completions.create.call_args.kwargs
+            self.assertEqual(request["model"], "qwen/qwen3.6-27b")
+            self.assertEqual(request["max_completion_tokens"], 512)
+            self.assertEqual(request["reasoning_effort"], "none")
+            provider.complete([{"role": "user", "content": "hello"}], model="openai/gpt-oss-20b")
+            overridden = client.return_value.chat.completions.create.call_args.kwargs
+            self.assertEqual(overridden["model"], "openai/gpt-oss-20b")
+            self.assertEqual(overridden["reasoning_effort"], "low")
+            self.assertEqual(provider.request_options["reasoning_effort"], "low")
+
+    def test_groq_tokens_are_redacted_without_environment_lookup(self):
+        example = "gsk_" + "fictionalcredential" * 3
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertNotIn(example, transcript_json({"turns": [{"user": example}]}))
+
+    def test_groq_local_validation_still_blocks_unlisted_model_tools(self):
+        with patch.dict(os.environ, {"GROQ_LOCAL_TOOL_VALIDATION": "1"}, clear=True):
+            self.assertTrue(GroqProvider().request_options["extra_body"]["disable_tool_validation"])
+        fake_tool = Mock()
+        with patch("tool_runtime.TOOL_FUNCTIONS", {"JSON": fake_tool}):
+            result = execute_tool_call(ToolCall("JSON", {"reply": "untrusted"}), tools=TOOLS)
+            self.assertEqual(result["result"]["error"], "undeclared_tool")
+            fake_tool.assert_not_called()
 
     def test_redaction_before_transcript_export(self):
         value = {"text": "password: demo-secret", "api_key": "demo-key"}

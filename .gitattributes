@@ -7,3 +7,9 @@
 *.csv text eol=lf
 *.txt text eol=lf
 .gitattributes text eol=lf
+
+# Evaluated artifacts are byte-addressed evidence. Preserve the exact bytes
+# used on Windows instead of silently changing their SHA-256 on checkout.
+starter_v0/artifacts/versions/** -text
+starter_v0/artifacts/system_prompt.md -text
+starter_v0/artifacts/tools.yaml -text

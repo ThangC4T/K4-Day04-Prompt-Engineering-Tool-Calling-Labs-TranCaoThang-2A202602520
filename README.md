@@ -1,6 +1,6 @@
 # Day 04 Lab — IT Helpdesk Agent
 
-**Bản tích hợp của nhóm:** xem [QUICKSTART.md](QUICKSTART.md) để chạy UI, kiểm tra local và chạy thực nghiệm. Thành viên đã xác nhận: **Phạm Minh Cương — 2A202602825**. Chưa có API key/live evidence cho bản tích hợp; xem trạng thái trong [báo cáo](starter_v0/artifacts/REPORT.md).
+**Bản tích hợp của nhóm:** xem [QUICKSTART.md](QUICKSTART.md) để chạy UI, kiểm tra local và chạy thực nghiệm. Thành viên đã xác nhận: **Phạm Minh Cương — 2A202602825**. Đã kết nối Groq; kết quả đo và trạng thái hoàn thiện nằm trong [báo cáo](starter_v0/artifacts/REPORT.md).
 
 ## Tổng quan
 

@@ -13,6 +13,7 @@ class AgentRun:
     text: str | None
     tool_calls: list[ToolCall] = field(default_factory=list)
     tool_results: list[dict[str, Any]] = field(default_factory=list)
+    usage: dict[str, Any] = field(default_factory=dict)
 
 
 class HelpdeskAgent:
@@ -41,4 +42,6 @@ class HelpdeskAgent:
         # Evaluation records the actual model choices, but never turns a model's
         # confirmed=True into write authorization. UI/CLI approval is separate.
         results = [execute_tool_call(call, tools=self.tools) for call in response.tool_calls]
-        return AgentRun(text=response.text, tool_calls=response.tool_calls, tool_results=results)
+        usage = getattr(response.raw, "usage", None)
+        return AgentRun(text=response.text, tool_calls=response.tool_calls, tool_results=results,
+                        usage=usage.model_dump() if hasattr(usage, "model_dump") else {})

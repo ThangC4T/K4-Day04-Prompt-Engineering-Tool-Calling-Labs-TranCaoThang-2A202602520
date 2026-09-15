@@ -1,9 +1,9 @@
 tools:
 - name: clarify
-  description: Ask for missing identifiers or ambiguous environment using text/choice.
-    Ask yes_no for a ticket confirmation and show the final summary, priority and
-    asset. Pause for the answer. Do not use to refuse unrelated requests or secret-bearing
-    actions.
+  description: Call this structured tool when a required ID is missing or the environment
+    is ambiguous; a plain-text question does not invoke the pause workflow. Use text/choice
+    for missing information. Use yes_no for ticket confirmation and show current summary,
+    priority and asset. Do not call for unrelated requests or credential-bearing actions.
   parameters:
     type: object
     properties:
@@ -121,9 +121,10 @@ tools:
     required:
     - employee_id
 - name: format_incident_report
-  description: Format supplied or previously collected findings only. Do not re-check
-    services/assets when asked only to format. Preserve the requested title and template;
-    do not fabricate findings or create a ticket.
+  description: Call this structured tool to format supplied or previously collected
+    findings. A JSON reply claiming formatting is not tool execution. Preserve requested
+    title and template. Do not re-check services/assets for format-only requests,
+    fabricate findings, or create a ticket.
   parameters:
     type: object
     properties:

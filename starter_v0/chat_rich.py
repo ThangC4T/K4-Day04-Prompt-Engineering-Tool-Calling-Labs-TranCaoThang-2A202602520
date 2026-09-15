@@ -62,7 +62,7 @@ def render_turn(result: dict) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Rich IT Helpdesk Agent chat.")
-    parser.add_argument("--provider", choices=["openrouter", "openai", "anthropic", "gemini"], required=True)
+    parser.add_argument("--provider", choices=["openrouter", "openai", "anthropic", "gemini", "groq"], required=True)
     parser.add_argument("--model", default=None)
     parser.add_argument("--version", required=True)
     parser.add_argument("--system-prompt", type=Path, default=ARTIFACTS_DIR / "system_prompt.md")

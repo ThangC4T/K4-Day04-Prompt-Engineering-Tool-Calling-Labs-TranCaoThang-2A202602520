@@ -13,6 +13,15 @@ from providers.base import ModelResponse, ToolCall
 
 
 class UITests(unittest.TestCase):
+    def setUp(self):
+        loader = patch("env_loader.load_lab_env")
+        loader.start()
+        self.addCleanup(loader.stop)
+        # A developer's .env must never cause AppTest to use a real provider.
+        environment = patch.dict(os.environ, {"GROQ_API_KEY": ""})
+        environment.start()
+        self.addCleanup(environment.stop)
+
     def test_ticket_button_creates_only_after_click(self):
         ticket = {"summary": "VPN unavailable", "priority": "medium", "asset_id": "LT-204", "confirmed": True}
         with tempfile.TemporaryDirectory() as folder, \

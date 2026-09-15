@@ -6,10 +6,11 @@ Repository chung: https://github.com/anhtri04/K4-Day04-Prompt-Engineering-Tool-C
 
 | Họ tên | MSSV | GitHub username | Phần việc trong bản tích hợp |
 |---|---|---|---|
-| Phạm Minh Cương | 2A202602825 | Chờ xác nhận | Tích hợp các nhánh, giao diện web, kiểm tra runtime, quy trình thực nghiệm và tài liệu; có Codex hỗ trợ |
+| Phạm Minh Cương | 2A202602825 | mcnb2005 | Tích hợp các nhánh, giao diện web, Groq, kiểm tra runtime, thực nghiệm và báo cáo từ log; có Codex hỗ trợ |
 
-Thông tin trên do người dùng cung cấp. Không suy đoán danh sách nhóm từ tên
-branch hoặc tự gán MSSV/GitHub username cho người khác.
+Họ tên và MSSV do người dùng cung cấp. Tài khoản GitHub đang xác thực có login
+`mcnb2005` và tên hồ sơ “Phạm Minh Cương”, đã đối chiếu qua GitHub API.
+Không suy đoán danh sách nhóm từ tên branch hoặc tự gán MSSV cho người khác.
 
 ## Đóng góp đã có trong Git history
 
@@ -22,10 +23,10 @@ Các nhánh dưới đây được tích hợp bằng merge, giữ commit và t�
 | `phat` | `25cbaca` | GeminiCanCode | Tool descriptions, eval, báo cáo và tài liệu trình bày |
 | `khanh` | `d24c842` | KOT-NW | Prompt/tool, eval nhóm, CLI và báo cáo kỹ thuật |
 
-Nhóm cần xác nhận họ tên, MSSV, username, vai trò và self-reflection của các
-thành viên còn lại trước khi nộp. Các tên tác giả trên chỉ mô tả Git history,
-không thay thế danh sách thành viên chính thức. Mỗi thành viên tự kiểm tra
-commit của mình đã có trên `main` và nộp cùng URL repo trên VLearn.
+Theo yêu cầu mới nhất của người dùng, bản này chưa bổ sung tên các thành viên
+khác. Các tên tác giả trên chỉ mô tả Git history, không thay thế danh sách thành
+viên chính thức. Lịch sử đóng góp được giữ nguyên; không gán danh tính hoặc
+viết self-reflection thay cho những tác giả chưa được xác nhận.
 
 ## Ghi nhận hỗ trợ
 

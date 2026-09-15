@@ -1,0 +1,12 @@
+{
+  "evidence_type": "aborted_provider_run",
+  "version": "v3",
+  "provider": "groq",
+  "model": "qwen/qwen3.6-27b",
+  "artifact_version": "v3+p051690e91cab+t0b8c125a3fdb",
+  "aborted_at": "2026-09-15T03:34:14.242187+00:00",
+  "reason": "Daily token quota exhausted: limit 200000, used 199568 at diagnostic.",
+  "last_observed_case_started": "M03_correct_asset",
+  "metrics": null,
+  "notice": "Interrupted to stop futile calls. Partial in-memory results were not exported; no score is claimed."
+}

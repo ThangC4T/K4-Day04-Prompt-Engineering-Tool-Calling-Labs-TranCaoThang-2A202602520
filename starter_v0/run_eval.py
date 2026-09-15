@@ -283,7 +283,9 @@ def run_case(agent: Any, case: dict[str, Any], *, tool_choice: str = "auto",
             choice = "auto" if case["expect"].get("no_tool") else tool_choice
             run = agent.run(case_messages(case), tool_choice=choice)
             calls = [{"name": call.name, "args": call.args} for call in run.tool_calls]
-            return evaluate_phase_b(case, calls, run.text), run.tool_results, attempt + 1
+            result = evaluate_phase_b(case, calls, run.text)
+            result["usage"] = getattr(run, "usage", {})
+            return result, run.tool_results, attempt + 1
         except Exception as exc:
             if is_rate_limit(exc) and attempt < max_retries:
                 time.sleep(min(retry_delay * (2 ** attempt), 60.0))
@@ -307,7 +309,7 @@ def main() -> None:
     parser.add_argument("--phase", choices=["B"], default="B")
     parser.add_argument("--suite", choices=["base", "group", "cross", "extension", "adversarial"], default="base", help="Run label saved to JSON; does not filter --eval-cases.")
     parser.add_argument("--version", required=True)
-    parser.add_argument("--provider", choices=["openai", "openrouter", "anthropic", "gemini"], required=True)
+    parser.add_argument("--provider", choices=["openai", "openrouter", "anthropic", "gemini", "groq"], required=True)
     parser.add_argument("--model", default=None)
     parser.add_argument("--system-prompt", type=Path, default=ARTIFACTS_DIR / "system_prompt.md")
     parser.add_argument("--tools", type=Path, default=ARTIFACTS_DIR / "tools.yaml")
@@ -322,7 +324,7 @@ def main() -> None:
     if not 0 <= args.max_retries <= 5 or not 0 <= args.delay <= 60 or not 0 <= args.retry_delay <= 60:
         parser.error("retries must be 0..5; delay and retry-delay must be 0..60 seconds")
     key_name = {"openai": "OPENAI_API_KEY", "openrouter": "OPENROUTER_API_KEY",
-                "anthropic": "ANTHROPIC_API_KEY", "gemini": "GEMINI_API_KEY"}[args.provider]
+                "anthropic": "ANTHROPIC_API_KEY", "gemini": "GEMINI_API_KEY", "groq": "GROQ_API_KEY"}[args.provider]
     if not os.getenv(key_name):
         raise SystemExit(f"Missing {key_name}. Configure starter_v0/.env; no evaluation was run.")
 
@@ -389,6 +391,7 @@ def main() -> None:
         "dataset_hash": file_hash(args.eval_cases),
         "evaluator_hash": file_hash(Path(__file__)),
         "model": selected_model,
+        "provider_options": getattr(provider, "request_options", {}),
         "system_prompt": str(args.system_prompt),
         "tools": str(args.tools),
         "eval_cases": str(args.eval_cases),

@@ -1,0 +1,16 @@
+{
+  "evidence_type": "browser_visual_review",
+  "reviewed_at": "2026-09-15T02:58:24.495830+00:00",
+  "url": "http://127.0.0.1:8501/",
+  "reviewer": "Codex via computer-use browser",
+  "observations": [
+    "Main screen displays Pham Minh Cuong / 2A202602825 and Groq qwen/qwen3.6-27b.",
+    "Provider selector, version v3, 9 tools, tabs and chat input render without visible errors.",
+    "Local tools tab returns VPN production status degraded and incident INC-1042.",
+    "Local tool execution does not add a model conversation turn."
+  ],
+  "limits": [
+    "No live model request was sent during this visual review.",
+    "Live model UI scenarios are recorded separately by rehearse_live.py."
+  ]
+}
