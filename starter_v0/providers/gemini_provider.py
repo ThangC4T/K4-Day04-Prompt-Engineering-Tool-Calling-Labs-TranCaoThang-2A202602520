@@ -14,23 +14,38 @@ def _to_gemini_declarations(tools: list[dict[str, Any]] | None) -> list[dict[str
         declarations.append({
             "name": function["name"],
             "description": function.get("description", ""),
-            "parameters": function.get("parameters", {"type": "object", "properties": {}}),
+            "parameters_json_schema": function.get("parameters", {"type": "object", "properties": {}}),
         })
     return declarations
 
 
-def _to_gemini_contents(messages: list[dict[str, str]]) -> tuple[str | None, list[dict[str, Any]]]:
+def _to_gemini_contents(messages: list[dict[str, Any]]) -> tuple[str | None, list[dict[str, Any]]]:
     system_parts: list[str] = []
     contents: list[dict[str, Any]] = []
+    call_names: dict[str, str] = {}
     for msg in messages:
         role = msg.get("role")
         content = msg.get("content", "")
         if role == "system":
             system_parts.append(content)
         elif role == "assistant":
-            contents.append({"role": "model", "parts": [{"text": content}]})
+            native_parts = msg.get("provider_metadata", {}).get("gemini_parts")
+            parts: list[dict[str, Any]] = [{"text": content}] if content else []
+            for call in msg.get("tool_calls", []):
+                name = call["function"]["name"]
+                call_names[call["id"]] = name
+                parts.append({"function_call": {"name": name, "args": json.loads(call["function"]["arguments"])}})
+            if parts:
+                contents.append({"role": "model", "parts": native_parts or parts})
         elif role == "user":
             contents.append({"role": "user", "parts": [{"text": content}]})
+        elif role == "tool":
+            name = call_names[msg["tool_call_id"]]
+            part = {"function_response": {"name": name, "response": json.loads(content)}}
+            if contents and contents[-1]["role"] == "user":
+                contents[-1]["parts"].append(part)
+            else:
+                contents.append({"role": "user", "parts": [part]})
     return ("\n\n".join(system_parts) if system_parts else None), contents
 
 
@@ -76,11 +91,11 @@ class GeminiProvider:
         default_model: str = "gemini-3.5-flash",
     ) -> None:
         self.api_key_env = api_key_env
-        self.default_model = default_model
+        self.default_model = os.getenv("GEMINI_MODEL") or default_model
 
     def complete(
         self,
-        messages: list[dict[str, str]],
+        messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
         *,
         model: str | None = None,
@@ -104,6 +119,9 @@ class GeminiProvider:
             config_kwargs["system_instruction"] = system_instruction
         if declarations:
             config_kwargs["tools"] = [types.Tool(function_declarations=declarations)]
+            config_kwargs["automatic_function_calling"] = types.AutomaticFunctionCallingConfig(disable=True)
+            config_kwargs["tool_config"] = types.ToolConfig(function_calling_config=types.FunctionCallingConfig(
+                mode="ANY" if tool_choice == "required" else "AUTO"))
 
         client = genai.Client(api_key=api_key)
         resp = client.models.generate_content(
@@ -120,19 +138,24 @@ class GeminiProvider:
             if name:
                 calls.append(ToolCall(name=name, args=_function_call_args(function_call)))
 
-        for candidate in getattr(resp, "candidates", []) or []:
+        candidates = getattr(resp, "candidates", []) or []
+        native_parts = []
+        for candidate in candidates[:1]:
             content = getattr(candidate, "content", None)
             for part in getattr(content, "parts", []) or []:
+                if hasattr(part, "model_dump"):
+                    native_parts.append(part.model_dump(exclude_none=True))
                 text = _part_text(part)
-                if text:
+                if text and not getattr(part, "thought", False):
                     text_parts.append(text)
                 function_call = _part_function_call(part)
                 if function_call:
                     append_call(function_call)
 
         # Some SDK versions expose function calls directly on the response.
-        for function_call in getattr(resp, "function_calls", []) or []:
-            append_call(function_call)
+        if not calls:
+            for function_call in getattr(resp, "function_calls", []) or []:
+                append_call(function_call)
 
         deduped_calls: list[ToolCall] = []
         seen: set[tuple[str, str]] = set()
@@ -142,4 +165,5 @@ class GeminiProvider:
                 seen.add(key)
                 deduped_calls.append(call)
 
-        return ModelResponse(text="\n".join(part for part in text_parts if part) or None, tool_calls=deduped_calls, raw=resp)
+        return ModelResponse(text="\n".join(part for part in text_parts if part) or None,
+                             tool_calls=calls, raw=resp, assistant_metadata={"gemini_parts": native_parts})

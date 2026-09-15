@@ -4,7 +4,8 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from providers.base import Provider, ToolCall
-from tools import TOOL_FUNCTIONS
+from privacy import redact_sensitive
+from tool_runtime import execute_tool_call
 
 
 @dataclass
@@ -29,7 +30,7 @@ class HelpdeskAgent:
         self.model = model
 
     def run(self, user_messages: list[dict[str, str]], *, tool_choice: Any | None = None) -> AgentRun:
-        messages = [{"role": "system", "content": self.system_prompt}, *user_messages]
+        messages = [{"role": "system", "content": self.system_prompt}, *redact_sensitive(user_messages)]
         response = self.provider.complete(
             messages,
             self.tools,
@@ -37,15 +38,7 @@ class HelpdeskAgent:
             temperature=0.0,
             tool_choice=tool_choice,
         )
-        results: list[dict[str, Any]] = []
-        for call in response.tool_calls:
-            func = TOOL_FUNCTIONS.get(call.name)
-            if not func:
-                results.append({"tool": call.name, "error": "unknown_tool"})
-                continue
-            try:
-                result = func(**call.args)
-            except Exception as exc:  # keep eval robust; failures are evidence
-                result = {"error": type(exc).__name__, "message": str(exc)}
-            results.append({"tool": call.name, "args": call.args, "result": result})
+        # Evaluation records the actual model choices, but never turns a model's
+        # confirmed=True into write authorization. UI/CLI approval is separate.
+        results = [execute_tool_call(call, tools=self.tools) for call in response.tool_calls]
         return AgentRun(text=response.text, tool_calls=response.tool_calls, tool_results=results)

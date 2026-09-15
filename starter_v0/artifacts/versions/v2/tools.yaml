@@ -9,8 +9,8 @@ tools:
     properties:
       question:
         type: string
+        default: ''
         description: Câu hỏi
-        minLength: 1
       response_type:
         type: string
         enum:
@@ -27,7 +27,6 @@ tools:
         description: Các lựa chọn
     required:
     - question
-    additionalProperties: false
 - name: search_kb
   description: Search local troubleshooting HOW-TO guides. Not a service status or
     asset diagnostic tool. Use the most specific category once per distinct problem;
@@ -37,8 +36,8 @@ tools:
     properties:
       query:
         type: string
+        default: ''
         description: Nội dung cần tìm
-        minLength: 1
       category:
         type: string
         enum:
@@ -58,11 +57,8 @@ tools:
         type: integer
         default: 3
         description: Số kết quả
-        minimum: 1
-        maximum: 10
     required:
     - query
-    additionalProperties: false
 - name: check_service_status
   description: Read shared service status for vpn/email/sso/wifi/printing. Default
     production only if environment is unspecified; clarify ambiguous environments.
@@ -79,7 +75,6 @@ tools:
         - wifi
         - printing
         description: Tên dịch vụ
-        minLength: 1
       environment:
         type: string
         enum:
@@ -89,7 +84,6 @@ tools:
         description: Môi trường
     required:
     - service
-    additionalProperties: false
 - name: inspect_device
   description: Read inventory and a diagnostic snapshot for one explicit asset ID.
     Use vpn for VPN on the device, network for Wi-Fi/network, security/hardware/software
@@ -101,7 +95,6 @@ tools:
       asset_id:
         type: string
         description: Mã tài sản
-        minLength: 1
       check:
         type: string
         enum:
@@ -115,7 +108,6 @@ tools:
         description: Nhóm kiểm tra
     required:
     - asset_id
-    additionalProperties: false
 - name: lookup_user
   description: Read a directory record and assigned assets for one explicit employee
     ID. A name or department alone is insufficient; clarify the ID. Do not use for
@@ -126,10 +118,8 @@ tools:
       employee_id:
         type: string
         description: Mã nhân viên
-        minLength: 1
     required:
     - employee_id
-    additionalProperties: false
 - name: format_incident_report
   description: Format supplied or previously collected findings only. Do not re-check
     services/assets when asked only to format. Preserve the requested title and template;
@@ -152,16 +142,14 @@ tools:
               type: string
             status:
               type: string
-          additionalProperties: false
-        maxItems: 30
       template:
         type: string
         enum:
         - brief
         - technical
         - handoff
+        default: brief
         description: Mẫu báo cáo
-        minLength: 1
       incident_title:
         type: string
         default: IT incident
@@ -169,7 +157,6 @@ tools:
     required:
     - findings
     - template
-    additionalProperties: false
 - name: search_device_info
   description: Search public product specs/drivers/support/compatibility. Only reviewed
     public manufacturer/model pairs from the product catalog are allowed. Never send
@@ -181,11 +168,9 @@ tools:
       manufacturer:
         type: string
         description: Hãng sản xuất công khai, ví dụ Lenovo
-        minLength: 1
       model:
         type: string
         description: Tên model công khai, ví dụ ThinkPad T14 Gen 4
-        minLength: 1
       query_type:
         type: string
         enum:
@@ -193,19 +178,16 @@ tools:
         - drivers
         - support
         - compatibility
+        default: support
         description: Loại thông tin cần tìm
-        minLength: 1
       max_results:
         type: integer
         default: 3
         description: Số kết quả, tối đa 5
-        minimum: 1
-        maximum: 5
     required:
     - manufacturer
     - model
     - query_type
-    additionalProperties: false
 - name: policy
   description: Search local IT policy about access control, privacy, external tools,
     incident response, service operations or ticketing. Use the most specific policy_area.
@@ -215,8 +197,8 @@ tools:
     properties:
       query:
         type: string
+        default: ''
         description: Nội dung cần tìm
-        minLength: 1
       policy_area:
         type: string
         enum:
@@ -233,11 +215,8 @@ tools:
         type: integer
         default: 3
         description: Số mục
-        minimum: 1
-        maximum: 10
     required:
     - query
-    additionalProperties: false
 - name: create_ticket
   description: Create a local ticket only after explicit confirmation of its exact
     current summary, priority and asset. Payload changes invalidate consent. Never
@@ -248,9 +227,8 @@ tools:
     properties:
       summary:
         type: string
+        default: ''
         description: Tóm tắt sự cố
-        minLength: 1
-        maxLength: 1000
       priority:
         type: string
         enum:
@@ -270,4 +248,3 @@ tools:
         description: Đã được người dùng xác nhận
     required:
     - summary
-    additionalProperties: false

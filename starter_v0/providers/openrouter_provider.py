@@ -13,4 +13,5 @@ class OpenRouterProvider(OpenAIProvider):
             api_key_env="OPENROUTER_API_KEY",
             base_url=os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
             default_model="openai/gpt-4o-mini",
+            settings_prefix="OPENROUTER",
         )

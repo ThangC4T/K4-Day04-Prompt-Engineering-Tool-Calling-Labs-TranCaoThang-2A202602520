@@ -14,18 +14,19 @@ class OpenAIProvider:
         self,
         *,
         api_key_env: str = "OPENAI_API_KEY",
-        base_url: str = "https://api.deepseek.com",
-        default_model: str = "deepseek-flash",
+        base_url: str | None = None,
+        default_model: str = "gpt-4o-mini",
+        settings_prefix: str = "OPENAI",
     ) -> None:
         self.api_key_env = api_key_env
-        # Allow OpenAI-compatible endpoints (e.g. DeepSeek) via env without
-        # changing call sites. Supports both OPENAI_* and DEEPSEEK_* names.
-        self.base_url = base_url or os.getenv("OPENAI_BASE_URL") or os.getenv("DEEPSEEK_BASE_URL") or None
-        self.default_model = os.getenv("OPENAI_MODEL") or os.getenv("DEEPSEEK_MODEL") or default_model
+        # Credentials, endpoint and model must stay in the same namespace.
+        # To use DeepSeek explicitly, set OPENAI_BASE_URL + OPENAI_API_KEY + OPENAI_MODEL.
+        self.base_url = base_url or os.getenv(f"{settings_prefix}_BASE_URL") or None
+        self.default_model = os.getenv(f"{settings_prefix}_MODEL") or default_model
 
     def complete(
         self,
-        messages: list[dict[str, str]],
+        messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
         *,
         model: str | None = None,
@@ -39,15 +40,12 @@ class OpenAIProvider:
 
         api_key = os.getenv(self.api_key_env)
         if not api_key:
-            # Fallback for OpenAI-compatible setup using DeepSeek key name.
-            api_key = os.getenv("DEEPSEEK_API_KEY")
-        if not api_key:
-            raise RuntimeError(f"Missing API key env var: {self.api_key_env} (or DEEPSEEK_API_KEY)")
+            raise RuntimeError(f"Missing API key env var: {self.api_key_env}")
 
-        client = OpenAI(api_key=api_key, base_url=self.base_url)
+        client = OpenAI(api_key=api_key, base_url=self.base_url, timeout=45.0, max_retries=1)
         kwargs: dict[str, Any] = {
             "model": model or self.default_model,
-            "messages": messages,
+            "messages": [{k: v for k, v in message.items() if k != "provider_metadata"} for message in messages],
             "temperature": temperature,
         }
         if tools:
@@ -59,6 +57,11 @@ class OpenAIProvider:
         msg = resp.choices[0].message
         calls: list[ToolCall] = []
         for call in msg.tool_calls or []:
-            args = json.loads(call.function.arguments or "{}")
-            calls.append(ToolCall(name=call.function.name, args=args))
-        return ModelResponse(text=msg.content, tool_calls=calls, raw=resp)
+            try:
+                args = json.loads(call.function.arguments or "{}")
+            except (TypeError, json.JSONDecodeError) as exc:
+                raise ValueError("Provider returned invalid JSON tool arguments") from exc
+            calls.append(ToolCall(name=call.function.name, args=args, id=getattr(call, "id", None)))
+        reasoning = getattr(msg, "reasoning_content", None)
+        return ModelResponse(text=msg.content, tool_calls=calls, raw=resp,
+                             assistant_metadata={"reasoning_content": reasoning} if reasoning is not None else {})

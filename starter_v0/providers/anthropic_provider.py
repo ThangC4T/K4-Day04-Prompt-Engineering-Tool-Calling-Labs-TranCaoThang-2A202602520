@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from typing import Any
 
@@ -18,16 +19,31 @@ def _to_anthropic_tools(tools: list[dict[str, Any]] | None) -> list[dict[str, An
     return converted
 
 
-def _split_system(messages: list[dict[str, str]]) -> tuple[str | None, list[dict[str, str]]]:
+def _split_system(messages: list[dict[str, Any]]) -> tuple[str | None, list[dict[str, Any]]]:
     system_parts: list[str] = []
-    chat_messages: list[dict[str, str]] = []
+    chat_messages: list[dict[str, Any]] = []
     for msg in messages:
         role = msg.get("role")
         content = msg.get("content", "")
         if role == "system":
             system_parts.append(content)
-        elif role in {"user", "assistant"}:
-            chat_messages.append({"role": role, "content": content})
+        elif role in {"user", "assistant", "tool"}:
+            blocks: list[dict[str, Any]] = []
+            if role == "tool":
+                role = "user"
+                blocks.append({"type": "tool_result", "tool_use_id": msg["tool_call_id"], "content": content})
+            else:
+                if content:
+                    blocks.append({"type": "text", "text": content})
+                for call in msg.get("tool_calls", []):
+                    blocks.append({"type": "tool_use", "id": call["id"], "name": call["function"]["name"],
+                                   "input": json.loads(call["function"]["arguments"])})
+            if not blocks:
+                continue
+            if chat_messages and chat_messages[-1]["role"] == role:
+                chat_messages[-1]["content"].extend(blocks)
+            else:
+                chat_messages.append({"role": role, "content": blocks})
     return ("\n\n".join(system_parts) if system_parts else None), chat_messages
 
 
@@ -41,11 +57,11 @@ class AnthropicProvider:
         default_model: str = "claude-haiku-4-5-20251001",
     ) -> None:
         self.api_key_env = api_key_env
-        self.default_model = default_model
+        self.default_model = os.getenv("ANTHROPIC_MODEL") or default_model
 
     def complete(
         self,
-        messages: list[dict[str, str]],
+        messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
         *,
         model: str | None = None,
@@ -84,5 +100,5 @@ class AnthropicProvider:
             if block_type == "text":
                 text_parts.append(getattr(block, "text", ""))
             elif block_type == "tool_use":
-                calls.append(ToolCall(name=getattr(block, "name"), args=dict(getattr(block, "input", {}) or {})))
+                calls.append(ToolCall(name=getattr(block, "name"), args=getattr(block, "input", {}) or {}, id=getattr(block, "id", None)))
         return ModelResponse(text="\n".join(part for part in text_parts if part) or None, tool_calls=calls, raw=resp)

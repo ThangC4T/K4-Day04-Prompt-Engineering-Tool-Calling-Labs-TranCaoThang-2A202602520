@@ -1,0 +1,56 @@
+{
+  "evidence_type": "deterministic_local_checks",
+  "live_provider_tested": false,
+  "generated_at": "2026-09-15T00:09:34+00:00",
+  "python": "3.12.14",
+  "tests_run": 22,
+  "tests_passed": true,
+  "compile_passed": true,
+  "command": "python -m unittest discover -s checks -v",
+  "static_validation": {
+    "evidence_type": "local_static_validation",
+    "tool_count": 9,
+    "case_counts": {
+      "base": 30,
+      "group": 10,
+      "helpdesk_extension": 10,
+      "adversarial": 12
+    },
+    "artifact_versions": {
+      "v0": "v0+p27467914bc4d+t86e19195220e",
+      "v1": "v1+p27467914bc4d+ta2061ef42d81",
+      "v2": "v2+p10cce5f0f8cf+ta2061ef42d81",
+      "v3": "v3+p5a9fdb21de7c+tc04c6d2eae32"
+    },
+    "live_provider_tested": false
+  },
+  "notice": "Provider and HTTP responses in tests are scripted doubles; this is not LLM evaluation evidence.",
+  "source_hashes": {
+    "agent.py": "23a6b9574ab25b4f4a8759fca9820b35a1773909a2f97148ae4df94ffc53e517",
+    "app.py": "df00142a21d6ce6277d4bf92073ea69c9993eff298e5a68b0578c25f6b0e2318",
+    "chat.py": "ef38dba6628844520eae51d8ca22966cfd2182ab5c9956b3f5d0289569b011a8",
+    "chat_rich.py": "72daa338c429398f2bd4239c06c8437034286c250d809a58d9a407b8e2a3895f",
+    "env_loader.py": "9b973bea31055830c22e8eb7c7d8b9e7b6cb1c63d51cad3ebce5e9f8583ecd8c",
+    "helpdesk_cli.py": "b6345d44726506334be824fd72028eca399a19407cc5fa4e4b8bf91306b5d1a6",
+    "privacy.py": "98835c67310f3c319bea74ffa5848f7d2eec04380ca8e92ce9c37738b85cad83",
+    "run_eval.py": "8b6f3c2b722e6f03209d551c4cdd02fd75fab04e72d33af926fc1b41cc7940ca",
+    "tool_runtime.py": "aa06fccc379588a607efe627a4a0f133b7780e5d1ad079405e7fed1a39047b6a",
+    "ui_support.py": "ef55a61e345146bae8ec72330b9a5b512e8bfd59a51e210eb2983138233d8814",
+    "versioning.py": "6d19cc47a973253390bb80ef4685b4c60b8759985aca1d9579635677e040efc8",
+    "checks/test_runtime.py": "82c4f8b142bac2e775c1a980d74616d537930997cc7bca9ff16510098a9a0cf6",
+    "checks/test_ui.py": "1ffa649a0e9dd798d647d81b8019a66b0c5d2f906726929e607ebbfbc722b4ad",
+    "providers/__init__.py": "e090edf4803f60c0827a3fd651370da544524ca871222e895cd363c79d126f76",
+    "providers/anthropic_provider.py": "eddc93ccf6d3c2ecf070cf17231fddc828c835a2cc3b8f58117d673bb4e8cdcf",
+    "providers/base.py": "5e57bcfd4d38da7ba58a429f137b37882ceecc5b111a33ce7ccf88c9346697ad",
+    "providers/gemini_provider.py": "edd2791e067aca6bf047ad152f580741ddd67d066453bf5ce93b8d3d224665eb",
+    "providers/openai_provider.py": "eea209ec9f5ab3b0a9b88bc25c8499611c823b6a3202d27caa5c60b808865acc",
+    "providers/openrouter_provider.py": "86c775917fa00e98118163453ec492aaa16b01ee26893fd631ceff071f056b8f",
+    "scripts/check_submission.py": "badc57f6c11882cb97f01b496042c61d98877b9f9c1806feeee194ee0ea34fe1",
+    "scripts/parse_runs.py": "ebf6ce269a9c56d754fa5c18f3ee2e32e369ed16b18eb6e5ac27b1df53456593",
+    "scripts/preflight_provider.py": "470a6725a792f751fb209c3731f8faafe7f6dc47172ff225a0b08a971a5faa62",
+    "scripts/run_experiment.py": "e715d4552e8631bdb3c76da1bd579effaba97c2060213729f3c3d4a1616907d9",
+    "scripts/validate_local.py": "c05a83033d302e15d817c4eec2d1f093d2d780bb16c17c0f636a991ff79b9e9a"
+  },
+  "test_output": "test_approval_is_payload_bound_and_single_use (test_runtime.RuntimeTests.test_approval_is_payload_bound_and_single_use) ... ok\ntest_clarification_pauses_and_resolves_all_call_ids (test_runtime.RuntimeTests.test_clarification_pauses_and_resolves_all_call_ids) ... ok\ntest_context_trimming_keeps_tool_pair (test_runtime.RuntimeTests.test_context_trimming_keeps_tool_pair) ... ok\ntest_external_search_exports_only_canonical_product (test_runtime.RuntimeTests.test_external_search_exports_only_canonical_product) ... ok\ntest_external_search_rejects_appended_private_text_without_http (test_runtime.RuntimeTests.test_external_search_rejects_appended_private_text_without_http) ... ok\ntest_limit_has_explicit_status (test_runtime.RuntimeTests.test_limit_has_explicit_status) ... ok\ntest_missing_tool_is_failure_without_score_retry (test_runtime.RuntimeTests.test_missing_tool_is_failure_without_score_retry) ... ok\ntest_model_confirmation_is_not_write_permission (test_runtime.RuntimeTests.test_model_confirmation_is_not_write_permission) ... ok\ntest_native_tool_provenance_converts_for_all_providers (test_runtime.RuntimeTests.test_native_tool_provenance_converts_for_all_providers) ... ok\ntest_provider_namespaces_are_isolated (test_runtime.RuntimeTests.test_provider_namespaces_are_isolated) ... ok\ntest_read_only_mock_tools_return_evidence (test_runtime.RuntimeTests.test_read_only_mock_tools_return_evidence) ... ok\ntest_redaction_before_transcript_export (test_runtime.RuntimeTests.test_redaction_before_transcript_export) ... ok\ntest_retry_throttling_but_redact_other_provider_errors (test_runtime.RuntimeTests.test_retry_throttling_but_redact_other_provider_errors) ... ok\ntest_schema_rejects_unknown_and_wrong_types (test_runtime.RuntimeTests.test_schema_rejects_unknown_and_wrong_types) ... ok\ntest_secrets_never_reach_ticket_file (test_runtime.RuntimeTests.test_secrets_never_reach_ticket_file) ... ok\ntest_submission_contracts (test_runtime.RuntimeTests.test_submission_contracts) ... ok\ntest_tool_results_have_real_role_and_matching_ids (test_runtime.RuntimeTests.test_tool_results_have_real_role_and_matching_ids) ... ok\ntest_ui_approval_executes_exact_ticket_without_model (test_runtime.RuntimeTests.test_ui_approval_executes_exact_ticket_without_model) ... ok\ntest_undeclared_tool_never_executes (test_runtime.RuntimeTests.test_undeclared_tool_never_executes) ... ok\ntest_chat_trace_uses_shared_loop_and_resets_configuration (test_ui.UITests.test_chat_trace_uses_shared_loop_and_resets_configuration) ... 2026-09-15 07:09:29.559 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\nok\ntest_no_key_ui_and_local_tool_work (test_ui.UITests.test_no_key_ui_and_local_tool_work) ... 2026-09-15 07:09:32.744 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\nok\ntest_ticket_button_creates_only_after_click (test_ui.UITests.test_ticket_button_creates_only_after_click) ... 2026-09-15 07:09:33.481 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\nok\n\n----------------------------------------------------------------------\nRan 22 tests in 6.329s\n\nOK\n",
+  "source_hash_convention": "SHA-256 of source bytes with repository LF line endings; tests ran the same code before newline normalization."
+}

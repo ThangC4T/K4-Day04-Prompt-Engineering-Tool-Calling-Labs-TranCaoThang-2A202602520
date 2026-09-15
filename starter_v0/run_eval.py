@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import os
+import time
 import sys
 import time
 from datetime import datetime
@@ -19,7 +21,7 @@ from agent import HelpdeskAgent
 from env_loader import load_lab_env
 from providers import make_provider
 from tools import TOOL_FUNCTIONS, load_tool_declarations, to_openai_tools
-from versioning import artifact_version_dict, build_artifact_version
+from versioning import artifact_version_dict, build_artifact_version, file_hash
 
 
 ROOT = Path(__file__).parent
@@ -267,6 +269,39 @@ def print_table(results: list[dict[str, Any]], summary: dict[str, Any]) -> None:
         print(f"{key}: {value}")
 
 
+def is_rate_limit(exc: Exception) -> bool:
+    return getattr(exc, "status_code", None) == 429 or type(exc).__name__ in {
+        "RateLimitError", "ResourceExhausted",
+    }
+
+
+def run_case(agent: Any, case: dict[str, Any], *, tool_choice: str = "auto",
+             max_retries: int = 2, retry_delay: float = 5.0) -> tuple[dict[str, Any], list[dict[str, Any]], int]:
+    """Retry provider throttling only; never retry a low score to cherry-pick it."""
+    for attempt in range(max_retries + 1):
+        try:
+            choice = "auto" if case["expect"].get("no_tool") else tool_choice
+            run = agent.run(case_messages(case), tool_choice=choice)
+            calls = [{"name": call.name, "args": call.args} for call in run.tool_calls]
+            return evaluate_phase_b(case, calls, run.text), run.tool_results, attempt + 1
+        except Exception as exc:
+            if is_rate_limit(exc) and attempt < max_retries:
+                time.sleep(min(retry_delay * (2 ** attempt), 60.0))
+                continue
+            # SDK errors can echo request bodies, URLs and credentials. Keep the
+            # error class/status only in exported evidence.
+            result = {
+                "passed": False, "failure_type": "provider_error",
+                "case_failure_type": case.get("failure_type"),
+                "observed_mismatch": "provider_error",
+                "failures": [f"{type(exc).__name__} (status={getattr(exc, 'status_code', None)})"],
+                "actual_tool_calls": [], "actual_text": None,
+                "routing_correct": False, "args_correct": False,
+            }
+            return result, [], attempt + 1
+    raise AssertionError("unreachable")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run IT Helpdesk Agent live evals.")
     parser.add_argument("--phase", choices=["B"], default="B")
@@ -279,7 +314,17 @@ def main() -> None:
     parser.add_argument("--eval-cases", type=Path, default=DATA_DIR / "eval_base.json")
     parser.add_argument("--runs-dir", type=Path, default=ROOT / "runs")
     parser.add_argument("--delay", type=float, default=0.0, help="Delay in seconds between cases to avoid rate limits.")
+    parser.add_argument("--tool-choice", choices=["auto", "required"], default="auto",
+                        help="Use one setting consistently across v0-v3; saved in evidence.")
+    parser.add_argument("--max-retries", type=int, default=2)
+    parser.add_argument("--retry-delay", type=float, default=5.0)
     args = parser.parse_args()
+    if not 0 <= args.max_retries <= 5 or not 0 <= args.delay <= 60 or not 0 <= args.retry_delay <= 60:
+        parser.error("retries must be 0..5; delay and retry-delay must be 0..60 seconds")
+    key_name = {"openai": "OPENAI_API_KEY", "openrouter": "OPENROUTER_API_KEY",
+                "anthropic": "ANTHROPIC_API_KEY", "gemini": "GEMINI_API_KEY"}[args.provider]
+    if not os.getenv(key_name):
+        raise SystemExit(f"Missing {key_name}. Configure starter_v0/.env; no evaluation was run.")
 
     system_prompt = args.system_prompt.read_text(encoding="utf-8")
     artifact_version = build_artifact_version(args.version, args.system_prompt, args.tools)
@@ -294,61 +339,16 @@ def main() -> None:
     validate_expected_tools(cases, tool_declarations, args.eval_cases)
     openai_tools = to_openai_tools(tool_declarations)
 
-    import time
     results: list[dict[str, Any]] = []
-    for case in cases:
-        time.sleep(5)
+    for index, case in enumerate(cases):
+        if index and args.delay:
+            time.sleep(args.delay)
         print(f"Running {case['id']}...", flush=True)
         agent = HelpdeskAgent(provider, system_prompt=system_prompt, tools=openai_tools, model=args.model)
-        max_retries = 5
-        calls = []
-        tool_results = []
-        result = None
-        for attempt in range(max_retries):
-            try:
-                tool_choice = None if case["expect"].get("no_tool") else "required"
-                run = agent.run(case_messages(case), tool_choice=tool_choice)
-                calls = [{"name": call.name, "args": call.args} for call in run.tool_calls]
-                result = evaluate_phase_b(case, calls, run.text)
-                tool_results = run.tool_results
-                break
-            except Exception as exc:
-                exc_str = str(exc)
-                if "429" in exc_str or "RESOURCE_EXHAUSTED" in exc_str:
-                    wait_sec = 15 + attempt * 10
-                    print(f"Rate limit hit on {case['id']}. Waiting {wait_sec}s before retry ({attempt + 1}/{max_retries})...", flush=True)
-                    time.sleep(wait_sec)
-                    continue
-                calls = []
-                tool_results = []
-                result = {
-                    "passed": False,
-                    "failure_type": "provider_error",
-                    "case_failure_type": case.get("failure_type"),
-                    "observed_mismatch": "provider_error",
-                    "failures": [f"{type(exc).__name__}: {exc_str}"],
-                    "actual_tool_calls": [],
-                    "actual_text": None,
-                    "routing_correct": False,
-                    "args_correct": False,
-                }
-                break
-        else:
-            calls = []
-            tool_results = []
-            result = {
-                "passed": False,
-                "failure_type": "provider_error",
-                "case_failure_type": case.get("failure_type"),
-                "observed_mismatch": "provider_error",
-                "failures": ["Rate limit retry exceeded"],
-                "actual_tool_calls": [],
-                "actual_text": None,
-                "routing_correct": False,
-                "args_correct": False,
-            }
-        if args.delay > 0:
-            time.sleep(args.delay)
+        result, tool_results, attempts = run_case(
+            agent, case, tool_choice=args.tool_choice,
+            max_retries=args.max_retries, retry_delay=args.retry_delay,
+        )
 
         results.append({
             "id": case["id"],
@@ -359,6 +359,7 @@ def main() -> None:
             "metadata": case.get("metadata", {}),
             "input": case.get("input") or case.get("query") or case.get("turns"),
             "expect": case["expect"],
+            "provider_attempts": attempts,
             "result": result,
             "tool_results": tool_results,
         })
@@ -382,6 +383,11 @@ def main() -> None:
         "phase": args.phase,
         "suite": args.suite,
         "provider": args.provider,
+        "evidence_type": "live_provider_eval",
+        "tool_choice": args.tool_choice,
+        "execution_policy": "writes require server-side approval; eval does not grant approval",
+        "dataset_hash": file_hash(args.eval_cases),
+        "evaluator_hash": file_hash(Path(__file__)),
         "model": selected_model,
         "system_prompt": str(args.system_prompt),
         "tools": str(args.tools),
@@ -400,6 +406,8 @@ def main() -> None:
         print(f"\nSaved: {out_path}")
     except UnicodeEncodeError:
         print(f"\nSaved: {out_path.name}")
+    if summary["provider_error_cases"] or summary["measured_cases"] != summary["total_cases"]:
+        raise SystemExit(2)
 
 
 if __name__ == "__main__":

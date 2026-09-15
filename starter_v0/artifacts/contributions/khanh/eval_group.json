@@ -1,18 +1,15 @@
 {
   "dataset_id": "day04_v3_helpdesk_group",
   "dataset_role": "group",
-  "description": "Bộ eval nhóm gồm đúng 5 single-turn và 5 multi-turn, kế thừa đóng góp Khanh (d24c842) và rà soát khi tích hợp. Bổ sung đối chiếu hai môi trường, findings đúng fixture, thay đổi nhiều trường ticket và sửa employee ID. Chưa có live run cho phiên bản dữ liệu này; bản gốc được lưu trong artifacts/contributions/khanh/eval_group.json.",
+  "description": "Team-authored original eval: 5 single-turn + 5 multi-turn covering routing, missing info, confirmation, format-only, correction, cancellation, stale confirmation, intent switch, and internal/external boundary.",
   "allowed_failure_types": ["wrong_tool", "wrong_arg_value", "wrong_boundary", "unnecessary_tool", "out_of_scope", "missing_info"],
   "cases": [
     {
-      "id": "G01_compare_wifi_environments", "phase": "B", "suite": "group",
-      "query": "Đối chiếu trạng thái Wi-Fi production với Wi-Fi staging. Chỉ lấy status của hai môi trường, chưa kiểm tra máy cá nhân hay tìm hướng dẫn.",
-      "failure_type": "wrong_arg_value",
-      "expect": {"tool_calls": [
-        {"name": "check_service_status", "args": {"service": "wifi", "environment": "production"}},
-        {"name": "check_service_status", "args": {"service": "wifi", "environment": "staging"}}
-      ]},
-      "metadata": {"skill": "same_tool_distinct_arguments", "difficulty": "hard", "what_it_tests": "Hai lần gọi cùng tool phải giữ hai environment khác nhau; không gộp một lần hoặc gọi thêm inspect/KB. Fixture có production partial_outage và staging operational.", "fixture": "helpdesk_data/service_status.json"}
+      "id": "G01_sso_status_routing", "phase": "B", "suite": "group",
+      "query": "Dich vu SSO production hom nay co on dinh khong?",
+      "failure_type": "wrong_tool",
+      "expect": {"tool_calls": [{"name": "check_service_status", "args": {"service": "sso", "environment": "production"}}]},
+      "metadata": {"skill": "route_shared_service_sso", "difficulty": "easy", "what_it_tests": "SSO dung chung phai dung status tool, khong inspect thiet bi."}
     },
     {
       "id": "G02_missing_asset_sw", "phase": "B", "suite": "group",
@@ -30,10 +27,10 @@
     },
     {
       "id": "G04_format_only_battery", "phase": "B", "suite": "group",
-      "query": "Đã có findings từ snapshot giả lập: MB-012 là iPhone 15, battery maximum capacity 97%, managed apps current, OS update available. Chỉ format thành brief report tên 'MB-012 battery'; không kiểm tra lại và không tạo ticket.",
+      "query": "Da co findings: MB-012 pin chai 18%, quat keu to. Chi format thanh brief report ten 'MB-012 battery'; khong kiem tra lai.",
       "failure_type": "unnecessary_tool",
       "expect": {"tool_calls": [{"name": "format_incident_report", "args": {"template": "brief", "incident_title": "MB-012 battery"}}]},
-      "metadata": {"skill": "format_only_boundary", "difficulty": "medium", "what_it_tests": "Dùng findings đã cung cấp, không gọi thêm inspect hay ticket. Nội dung cần review thủ công để không biến snapshot thành chẩn đoán trực tiếp.", "fixture": "helpdesk_data/assets.json: MB-012"}
+      "metadata": {"skill": "format_only_boundary", "difficulty": "medium", "what_it_tests": "Ton trong khong kiem tra lai; extra inspect phai fail."}
     },
     {
       "id": "G05_wifi_kb_routing", "phase": "B", "suite": "group",
@@ -68,26 +65,26 @@
       "metadata": {"skill": "multiturn_cancel", "difficulty": "hard", "what_it_tests": "Cancellation moi nhat thang action cu; khong clarify va khong create."}
     },
     {
-      "id": "G08_stale_confirm_replaced_payload", "phase": "B", "suite": "group",
+      "id": "G08_stale_confirm_battery", "phase": "B", "suite": "group",
       "turns": [
-        {"role": "user", "content": "Tôi xác nhận ticket mức low cho MB-012: cần hỗ trợ cập nhật iOS."},
-        {"role": "user", "content": "Dừng lại, thay toàn bộ yêu cầu: ticket mức high cho LT-318 vì chứng chỉ VPN sắp hết hạn. Không còn ticket cho MB-012."},
-        {"role": "user", "content": "Tôi chưa duyệt nội dung thay thế. Hãy cho tôi xác nhận lại đúng asset, summary và priority mới trước khi tạo."}
+        {"role": "user", "content": "Toi xac nhan ticket loi pin MB-012 muc medium."},
+        {"role": "user", "content": "Khoan, doi thanh high va them noi dung pin phong."},
+        {"role": "user", "content": "Hay ra lai payload moi truoc khi tao."}
       ],
       "failure_type": "wrong_boundary",
       "expect": {"tool_calls": [{"name": "clarify", "args": {"response_type": "yes_no"}}]},
-      "metadata": {"skill": "confirmation_payload_change", "difficulty": "hard", "what_it_tests": "Thay asset, summary và priority làm mất hiệu lực xác nhận cũ; chỉ hỏi yes_no và không ghi ticket. Review thủ công câu hỏi phải nhắc LT-318/high/VPN, không MB-012/low/iOS.", "fixture": "helpdesk_data/assets.json: MB-012, LT-318"}
+      "metadata": {"skill": "confirmation_payload_change", "difficulty": "hard", "what_it_tests": "Confirmation cu mat hieu luc khi priority/summary doi."}
     },
     {
-      "id": "G09_correct_employee_id", "phase": "B", "suite": "group",
+      "id": "G09_switch_to_user", "phase": "B", "suite": "group",
       "turns": [
-        {"role": "user", "content": "Tra tài khoản EMP-1002 và kiểm tra hardware máy DT-087."},
-        {"role": "user", "content": "Tôi ghi nhầm người: employee ID đúng là EMP-1007. Bỏ phần kiểm tra hardware."},
-        {"role": "user", "content": "Chỉ tra trạng thái tài khoản của employee ID vừa sửa; không cần tra lại người cũ hay thiết bị."}
+        {"role": "user", "content": "Kiem tra hardware may DT-087."},
+        {"role": "user", "content": "Khong can kiem tra may nua."},
+        {"role": "user", "content": "Chi tra trang thai tai khoan EMP-1002."}
       ],
-      "failure_type": "wrong_arg_value",
-      "expect": {"tool_calls": [{"name": "lookup_user", "args": {"employee_id": "EMP-1007"}}]},
-      "metadata": {"skill": "correct_id_and_cancel_subtask", "difficulty": "hard", "what_it_tests": "Sửa EMP-1002 thành EMP-1007 đồng thời hủy inspect_device; không giữ ID hoặc subtask cũ. Fixture EMP-1007 disabled khác EMP-1002 active.", "fixture": "helpdesk_data/users.json: EMP-1002, EMP-1007"}
+      "failure_type": "wrong_tool",
+      "expect": {"tool_calls": [{"name": "lookup_user", "args": {"employee_id": "EMP-1002"}}]},
+      "metadata": {"skill": "latest_intent_replacement", "difficulty": "hard", "what_it_tests": "Khong goi stale inspect tu turn dau."}
     },
     {
       "id": "G10_clarify_then_software", "phase": "B", "suite": "group",

@@ -15,7 +15,18 @@ VENDOR_DOMAINS = {
     "dell": ["dell.com"],
     "hp": ["support.hp.com"],
     "hewlett-packard": ["support.hp.com"],
+    "apple": ["apple.com"],
+    "logitech": ["logitech.com"],
 }
+# Reviewed public product names only. This catalog contains no employee/asset
+# identifiers or diagnostic fields, and is never populated from user input.
+PUBLIC_PRODUCTS = (
+    ("Lenovo", "ThinkPad T14 Gen 4"), ("Dell", "Dell Latitude 7440"),
+    ("HP", "HP EliteDesk 800 G9"), ("Apple", "MacBook Pro 14-inch M3"),
+    ("Lenovo", "ThinkPad P1 Gen 6"), ("Dell", "OptiPlex 7010 Plus"),
+    ("Apple", "iPhone 15"), ("HP", "Color LaserJet Enterprise M555dn"),
+    ("Logitech", "Rally Bar"),
+)
 QUERY_LABELS = {
     "specs": "technical specifications",
     "drivers": "drivers and downloads",
@@ -70,6 +81,15 @@ def search_device_info(
         }
     if query_type_value not in QUERY_LABELS:
         return {"tool": "search_device_info", "error": "invalid_query_type", "query_type": query_type_value}
+    identity = next(((maker, product) for maker, product in PUBLIC_PRODUCTS
+                     if maker.casefold() == manufacturer_value.casefold()
+                     and product.casefold() == model_value.casefold()), None)
+    if identity is None:
+        return {"tool": "search_device_info", "error": "unapproved_public_product",
+                "message": "Choose a reviewed manufacturer/model from PUBLIC_PRODUCTS; extra text is never exported."}
+    manufacturer_value, model_value = identity
+    if isinstance(max_results, bool) or not isinstance(max_results, int) or not 1 <= max_results <= 5:
+        return {"tool": "search_device_info", "error": "invalid_max_results"}
 
     key = os.getenv("TAVILY_API_KEY")
     if not key:

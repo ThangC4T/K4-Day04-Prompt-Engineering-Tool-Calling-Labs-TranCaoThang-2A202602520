@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from tools._shared import ROOT, err
+from privacy import API_SECRET, SECRET_ASSIGNMENT
 
 
 TICKET_DIR = ROOT / "tickets"
@@ -40,7 +41,7 @@ def create_ticket(
     normalized_asset = (asset_id or "").strip().upper()
     if normalized_asset and not ASSET_ID_PATTERN.fullmatch(normalized_asset):
         return {"tool": "create_ticket", "error": "invalid_asset_id"}
-    if SENSITIVE_DATA_PATTERN.search(normalized_summary):
+    if SENSITIVE_DATA_PATTERN.search(normalized_summary) or SECRET_ASSIGNMENT.search(normalized_summary) or API_SECRET.search(normalized_summary):
         return {
             "tool": "create_ticket",
             "error": "restricted_sensitive_data",

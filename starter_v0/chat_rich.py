@@ -15,7 +15,9 @@ from providers import make_provider
 from tools import load_tool_declarations, to_openai_tools
 from versioning import artifact_version_dict, build_artifact_version
 
-from chat import run_model_tool_loop, trim_history, write_transcript, now_iso, safe_slug, json_text
+from chat import run_model_tool_loop, trim_context, write_transcript, now_iso, safe_slug, json_text
+from copy import deepcopy
+from privacy import redact_sensitive
 
 
 ROOT = Path(__file__).parent
@@ -103,7 +105,9 @@ def main() -> None:
         f"Type [bold]/exit[/] to stop.",
         title="[bold magenta]Northstar Labs service desk[/]", border_style="magenta"))
 
-    history: list[dict[str, str]] = []
+    history: list[dict] = [{"role": "system", "content": system_prompt}]
+    confirmation_state: dict = {}
+    console.print("Use /confirm for the displayed ticket, /cancel to discard it.")
     turn_index = 0
     while True:
         try:
@@ -115,11 +119,19 @@ def main() -> None:
             continue
         if user_text in {"/exit", "/quit"}:
             break
+        if user_text == "/confirm":
+            if not confirmation_state.get("pending_action"):
+                console.print("No pending ticket.")
+                continue
+            confirmation_state["approved_action"] = deepcopy(confirmation_state["pending_action"])
+        elif user_text == "/cancel":
+            confirmation_state.clear()
+            user_text = "Hủy yêu cầu tạo ticket."
+        user_text = redact_sensitive(user_text)
 
         turn_index += 1
         messages = [
-            {"role": "system", "content": system_prompt},
-            *trim_history(history, args.history_window),
+            *trim_context(history, args.history_window),
             {"role": "user", "content": user_text},
         ]
         turn_record = {"turn_index": turn_index, "started_at": now_iso(),
@@ -129,14 +141,14 @@ def main() -> None:
             with console.status("[bold green]Thinking + calling tools...[/]"):
                 result = run_model_tool_loop(
                     provider=provider, messages=messages, tools=openai_tools,
-                    model=args.model, max_tool_rounds=args.max_tool_rounds)
+                    model=args.model, max_tool_rounds=args.max_tool_rounds, confirmation_state=confirmation_state)
+            history = result.pop("working_messages")
             turn_record.update(result)
             render_turn(result)
-            history.append({"role": "user", "content": user_text})
-            history.append({"role": "assistant", "content": result["assistant_text"]})
         except Exception as exc:
+            confirmation_state.pop("approved_action", None)
             turn_record.update({"status": "provider_error",
-                                "error": f"{type(exc).__name__}: {exc}"})
+                                "error": type(exc).__name__})
             console.print(Panel(turn_record["error"], title="[red]ERROR[/]", border_style="red"))
 
         turn_record["ended_at"] = now_iso()

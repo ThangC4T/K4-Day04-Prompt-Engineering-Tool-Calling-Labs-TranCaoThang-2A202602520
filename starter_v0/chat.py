@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 import json
 import re
+from copy import deepcopy
+from uuid import uuid4
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -10,7 +12,9 @@ from typing import Any
 from env_loader import load_lab_env
 from providers import make_provider
 from providers.base import ToolCall
-from tools import TOOL_FUNCTIONS, load_tool_declarations, to_openai_tools
+from tools import load_tool_declarations, to_openai_tools
+from privacy import redact_sensitive
+from tool_runtime import execute_tool_call
 from versioning import artifact_version_dict, build_artifact_version
 
 
@@ -41,112 +45,120 @@ def trim_history(history: list[dict[str, str]], window: int) -> list[dict[str, s
     return history[-window * 2:]
 
 
-def execute_tool_call(call: ToolCall) -> dict[str, Any]:
-    func = TOOL_FUNCTIONS.get(call.name)
-    if not func:
-        return {
-            "tool": call.name,
-            "args": call.args,
-            "result": {"error": "unknown_tool", "message": f"No local implementation for {call.name}"},
-        }
-    try:
-        result = func(**call.args)
-    except Exception as exc:
-        result = {"error": type(exc).__name__, "message": str(exc)}
-    return {"tool": call.name, "args": call.args, "result": result}
+def assistant_tool_message(response_text: str | None, calls: list[ToolCall]) -> dict[str, Any]:
+    used_ids: set[str] = set()
+    for call in calls:
+        if not call.id or call.id in used_ids:
+            call.id = "call_" + uuid4().hex
+        used_ids.add(call.id)
+    return {"role": "assistant", "content": redact_sensitive(response_text), "tool_calls": [
+        {"id": call.id, "type": "function", "function": {
+            "name": call.name, "arguments": json.dumps(redact_sensitive(call.args), ensure_ascii=False),
+        }} for call in calls
+    ]}
 
 
-def tool_results_message(events: list[dict[str, Any]]) -> dict[str, str]:
-    return {
-        "role": "user",
-        "content": (
-            "TOOL_RESULTS_JSON:\n"
-            f"{json_text(events, max_chars=24000)}\n\n"
-            "Use only these tool results. If the user asked for an incident report and the findings are ready, "
-            "call the reporting tool. Otherwise answer directly, state uncertainty, and give the safest next step."
-        ),
-    }
-
-
-def assistant_tool_message(response_text: str | None, calls: list[ToolCall]) -> dict[str, str]:
-    call_summary = [{"name": call.name, "args": call.args} for call in calls]
-    content = response_text or "I will call the selected tool(s)."
-    return {
-        "role": "assistant",
-        "content": f"{content}\n\nTOOL_CALLS_JSON:\n{json_text(call_summary)}",
-    }
+def trim_context(messages: list[dict[str, Any]], window: int) -> list[dict[str, Any]]:
+    """Keep complete turns so tool outputs never lose their originating call."""
+    if window <= 0:
+        return messages[:1]
+    starts = [i for i, message in enumerate(messages) if message.get("role") == "user"]
+    return [messages[0], *messages[starts[-window]:]] if len(starts) > window else messages
 
 
 def run_model_tool_loop(
     *,
     provider: Any,
-    messages: list[dict[str, str]],
+    messages: list[dict[str, Any]],
     tools: list[dict[str, Any]],
     model: str | None,
     max_tool_rounds: int,
+    confirmation_state: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    working_messages = list(messages)
+    if max_tool_rounds < 1:
+        raise ValueError("max_tool_rounds must be positive")
+    working_messages = deepcopy(redact_sensitive(messages))
     rounds: list[dict[str, Any]] = []
     all_tool_events: list[dict[str, Any]] = []
+
+    def finish(status: str, text: str) -> dict[str, Any]:
+        working_messages.append({"role": "assistant", "content": text})
+        if confirmation_state is not None:
+            confirmation_state.pop("approved_action", None)
+        return {"status": status, "assistant_text": text, "rounds": rounds,
+                "tool_events": all_tool_events, "working_messages": working_messages}
+
+    # Approval comes from a UI button or /confirm, never from a model boolean.
+    # Execute the stored payload directly: the model cannot silently alter it.
+    approved = confirmation_state.get("approved_action") if confirmation_state else None
+    pending = confirmation_state.get("pending_action") if confirmation_state else None
+    if approved and approved == pending:
+        call = ToolCall(name=approved["name"], args=deepcopy(approved["args"]))
+        working_messages.append(assistant_tool_message(None, [call]))
+        event = execute_tool_call(call, tools=tools, confirmation_state=confirmation_state)
+        all_tool_events.append(event)
+        working_messages.append({"role": "tool", "tool_call_id": call.id, "content": json_text(event["result"])})
+        rounds.append({"round": 0, "source": "user_confirmation", "assistant_text": None,
+                       "tool_calls": [{"name": call.name, "args": redact_sensitive(call.args)}], "tool_results": [event]})
+        result = event["result"]
+        text = (f"Đã tạo ticket {result['ticket_id']}." if result.get("status") == "created"
+                else "Chưa tạo được ticket. Xem lỗi trong trace và kiểm tra lại nội dung.")
+        return finish("action_completed" if result.get("status") == "created" else "action_error", text)
+    if confirmation_state is not None:
+        confirmation_state.clear()  # a new/revised request invalidates older consent
 
     for round_index in range(1, max_tool_rounds + 1):
         response = provider.complete(working_messages, tools, model=model, temperature=0.0)
         calls = response.tool_calls
         round_record: dict[str, Any] = {
             "round": round_index,
-            "assistant_text": response.text,
-            "tool_calls": [{"name": call.name, "args": call.args} for call in calls],
+            "assistant_text": redact_sensitive(response.text),
+            "tool_calls": [{"name": call.name, "args": redact_sensitive(call.args)} for call in calls],
             "tool_results": [],
         }
 
         if not calls:
             rounds.append(round_record)
-            return {
-                "status": "answered",
-                "assistant_text": response.text or "",
-                "rounds": rounds,
-                "tool_events": all_tool_events,
-            }
+            return finish("answered", redact_sensitive(response.text or ""))
 
-        working_messages.append(assistant_tool_message(response.text, calls))
-        non_clarification_events: list[dict[str, Any]] = []
+        message = assistant_tool_message(response.text, calls)
+        metadata = getattr(response, "assistant_metadata", {})
+        if metadata.get("gemini_parts"):
+            message["provider_metadata"] = metadata
+        if "reasoning_content" in metadata:
+            message["reasoning_content"] = metadata["reasoning_content"]
+        working_messages.append(message)
+        pause: tuple[str, str] | None = None
 
         for call in calls:
-            print(f"[tool] {call.name}({json.dumps(call.args, ensure_ascii=True, sort_keys=True)})")
-            event = execute_tool_call(call)
+            event = ({"tool": call.name, "args": redact_sensitive(call.args),
+                      "result": {"error": "skipped_awaiting_user"}} if pause else
+                     execute_tool_call(call, tools=tools, confirmation_state=confirmation_state))
             round_record["tool_results"].append(event)
             all_tool_events.append(event)
+            working_messages.append({"role": "tool", "tool_call_id": call.id,
+                                     "content": json_text(event["result"])})
 
             # Detect the clarification/pause tool by its output flag (rename-proof),
             # not by a hard-coded tool name.
             result = event.get("result", {})
             if isinstance(result, dict) and result.get("awaiting_user"):
-                question = result.get("question") or call.args.get("question") or "Bạn bổ sung thêm thông tin nhé."
-                rounds.append(round_record)
-                return {
-                    "status": "waiting_for_user",
-                    "assistant_text": question,
-                    "rounds": rounds,
-                    "tool_events": all_tool_events,
-                }
-
-            non_clarification_events.append(event)
+                question = result.get("question") or "Bạn bổ sung thêm thông tin nhé."
+                pause = ("waiting_for_user", question)
+            elif isinstance(result, dict) and result.get("awaiting_confirmation"):
+                pause = ("waiting_for_confirmation", "Vui lòng kiểm tra nội dung ticket và xác nhận bằng nút trên giao diện hoặc /confirm trong CLI.\n" + json_text(result["pending_action"]))
 
         rounds.append(round_record)
-        working_messages.append(tool_results_message(non_clarification_events))
+        if pause:
+            return finish(*pause)
 
-    return {
-        "status": "max_tool_rounds",
-        "assistant_text": f"Stopped after {max_tool_rounds} tool rounds. Inspect the transcript for details.",
-        "rounds": rounds,
-        "tool_events": all_tool_events,
-    }
+    return finish("max_tool_rounds", f"Stopped after {max_tool_rounds} tool rounds. Inspect the transcript for details.")
 
 
 def write_transcript(path: Path, transcript: dict[str, Any]) -> None:
     transcript["updated_at"] = now_iso()
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(transcript, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+    path.write_text(json.dumps(redact_sensitive(transcript), ensure_ascii=False, indent=2, default=str), encoding="utf-8")
 
 
 def main() -> None:
@@ -190,9 +202,10 @@ def main() -> None:
     }
 
     print(f"IT Helpdesk Agent chat. artifact_version={artifact_version.artifact_version}")
-    print("Type /exit to stop.")
+    print("Type /exit to stop; /confirm approves the displayed ticket; /cancel discards it.")
 
-    history: list[dict[str, str]] = []
+    history: list[dict[str, Any]] = [{"role": "system", "content": system_prompt}]
+    confirmation_state: dict[str, Any] = {}
     turn_index = 0
     while True:
         try:
@@ -205,11 +218,19 @@ def main() -> None:
             continue
         if user_text in {"/exit", "/quit"}:
             break
+        if user_text == "/confirm":
+            if not confirmation_state.get("pending_action"):
+                print("No ticket is waiting for confirmation.")
+                continue
+            confirmation_state["approved_action"] = deepcopy(confirmation_state["pending_action"])
+        elif user_text == "/cancel":
+            confirmation_state.clear()
+            user_text = "Hủy yêu cầu tạo ticket. Không thực hiện hành động nào."
+        user_text = redact_sensitive(user_text)
 
         turn_index += 1
         messages = [
-            {"role": "system", "content": system_prompt},
-            *trim_history(history, args.history_window),
+            *trim_context(history, args.history_window),
             {"role": "user", "content": user_text},
         ]
 
@@ -230,16 +251,17 @@ def main() -> None:
                 tools=openai_tools,
                 model=args.model,
                 max_tool_rounds=args.max_tool_rounds,
+                confirmation_state=confirmation_state,
             )
+            history = result.pop("working_messages")
             turn_record.update(result)
             assistant_text = result["assistant_text"]
             print(f"\nAgent> {assistant_text}")
-            history.append({"role": "user", "content": user_text})
-            history.append({"role": "assistant", "content": assistant_text})
         except Exception as exc:
+            confirmation_state.pop("approved_action", None)
             turn_record.update({
                 "status": "provider_error",
-                "error": f"{type(exc).__name__}: {str(exc)}",
+                "error": type(exc).__name__,
             })
             print(f"\nERROR> {turn_record['error']}")
 

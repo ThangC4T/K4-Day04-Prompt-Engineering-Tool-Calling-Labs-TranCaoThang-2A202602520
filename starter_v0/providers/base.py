@@ -8,6 +8,7 @@ from typing import Any, Protocol
 class ToolCall:
     name: str
     args: dict[str, Any]
+    id: str | None = None
 
 
 @dataclass
@@ -15,12 +16,13 @@ class ModelResponse:
     text: str | None = None
     tool_calls: list[ToolCall] = field(default_factory=list)
     raw: Any | None = None
+    assistant_metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class Provider(Protocol):
     def complete(
         self,
-        messages: list[dict[str, str]],
+        messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
         *,
         model: str | None = None,
