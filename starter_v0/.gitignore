@@ -6,6 +6,8 @@ __pycache__/
 .env.*
 !.env.example
 /tickets/
-/runs/
-/transcripts/
+/runs/*
+!/runs/*.json
+/transcripts/*
+!/transcripts/*.json
 /analysis/
