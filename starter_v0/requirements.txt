@@ -6,5 +6,7 @@ google-genai>=0.8.0
 PyYAML>=6.0
 # Optional external device search:
 requests>=2.31.0
-# Rich CLI demo UI:
+# Modern CLI and Web UI:
 rich>=13.0.0
+typer>=0.9.0
+streamlit>=1.30.0

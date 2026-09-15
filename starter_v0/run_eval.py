@@ -294,10 +294,10 @@ def main() -> None:
     validate_expected_tools(cases, tool_declarations, args.eval_cases)
     openai_tools = to_openai_tools(tool_declarations)
 
-    import time
     results: list[dict[str, Any]] = []
     for case in cases:
-        time.sleep(5)
+        if args.delay > 0:
+            time.sleep(args.delay)
         print(f"Running {case['id']}...", flush=True)
         agent = HelpdeskAgent(provider, system_prompt=system_prompt, tools=openai_tools, model=args.model)
         max_retries = 5
@@ -306,7 +306,8 @@ def main() -> None:
         result = None
         for attempt in range(max_retries):
             try:
-                tool_choice = None if case["expect"].get("no_tool") else "required"
+                # deepseek-flash thinking mode and other providers work best with "auto" instead of "required"
+                tool_choice = None if case["expect"].get("no_tool") else "auto"
                 run = agent.run(case_messages(case), tool_choice=tool_choice)
                 calls = [{"name": call.name, "args": call.args} for call in run.tool_calls]
                 result = evaluate_phase_b(case, calls, run.text)
@@ -347,8 +348,6 @@ def main() -> None:
                 "routing_correct": False,
                 "args_correct": False,
             }
-        if args.delay > 0:
-            time.sleep(args.delay)
 
         results.append({
             "id": case["id"],
